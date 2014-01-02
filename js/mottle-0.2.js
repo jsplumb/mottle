@@ -265,22 +265,25 @@
 					DefaultHandler(obj, evt, fn, children);
 			},
 			// TODO MOVE TO A HANDLER
-			_addClickWrapper = function(obj, fn, touchCount, eventIds, supportDoubleClick) {
+			_addClickWrapper = function(obj, fn, touchCount, eventIds, supportDoubleClick, children) {
 				var handler = { down:false, touches:0, originalEvent:null, lastClick:null, timeout:null };
-				var down = function(e) {
-					var tc = _touchCount(e);
-					if (tc == touchCount) {
-						handler.originalEvent = e;
-						handler.touches = tc;
-						handler.down = true;
-						handler.timeout = window.setTimeout(function() {
-							handler.down = null;
-						}, clickThreshold);
-					}
-				};
+				//var down = function(e) {
+				var down = _curryChildFilter(children, obj, function(e) {
+						var tc = _touchCount(e);
+						if (tc == touchCount) {
+							handler.originalEvent = e;
+							handler.touches = tc;
+							handler.down = true;
+							handler.timeout = window.setTimeout(function() {
+								handler.down = null;
+							}, clickThreshold);
+						}
+					}, touchstart);
+					
 				fn[eventIds[0]] = down;
 				__bind(obj, touchstart, down);	
-				var up = function(e) {
+				//var up = function(e) {
+				var up = _curryChildFilter(children, obj, function(e) {
 					if (handler.down) {
 						// if supporting double click, check if there is a timestamp for a recent click
 						if (supportDoubleClick) {
@@ -297,7 +300,8 @@
 					}
 					handler.down = null;
 					window.clearTimeout(handler.timeout);
-				};				
+				}, touchend);
+				
 				fn[eventIds[1]] = up;	
 				__bind(obj, touchend, up);
 			};
@@ -310,16 +314,16 @@
 			// also, it would be nice to refactor this.
 			if (isTouchDevice) {
 				if (evt === click) {
-					_addClickWrapper(obj, fn, 1, [ta_down, ta_up]);
+					_addClickWrapper(obj, fn, 1, [ta_down, ta_up], false, children);
 				}
 				else if (evt === dblclick) {
-					_addClickWrapper(obj, fn, 1, [ta_down, ta_up], true);
+					_addClickWrapper(obj, fn, 1, [ta_down, ta_up], true, children);
 				}
 				else if (evt === contextmenu) {
-					_addClickWrapper(obj, fn, 2, [ta_context_down, ta_context_up]);
+					_addClickWrapper(obj, fn, 2, [ta_context_down, ta_context_up], false, children);
 				}
 				else {
-					__bind(obj, touchMap[evt], fn);
+					__bind(obj, touchMap[evt], fn, children);
 				}
 			}
 			else 

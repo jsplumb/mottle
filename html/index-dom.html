@@ -109,7 +109,7 @@ pre {
 			<hr />
 			<h3>Basic Events</h3>
 			<p>
-				This element uses Mottle to register listeners for `mousedown`, `mouseup`, `click`, `mousemove`, `mouseover`, `mouseout` and `contextmenu`. Note that you won't 
+				This element uses Mottle to register listeners for `mousedown`, `mouseup`, `click`, `dblclick`, `mousemove`, `mouseover`, `mouseout` and `contextmenu`. Note that you won't 
 				see any `mouseup` events appearing in the debug pane when you left-click, as the `click` event is fired immediately thereafter. If you right-click, though,
 				you will first see a `contextmenu` event, followed by a `mouseup` event.
 			</p>
@@ -130,6 +130,7 @@ var m = new Mottle();
 m.on("basicEvents", "mousedown", function() { ... });
 m.on("basicEvents", "mouseup", function() { ... });
 m.on("basicEvents", "click", function() { ... });
+m.on("basicEvents", "dblclick", function() { ... });
 m.on("basicEvents", "mousemove", function() { ... });
 m.on("basicEvents", "mouseover", function() { ... });
 m.on("basicEvents", "mouseout", function() { ... });
@@ -171,8 +172,8 @@ m.on("smartClick", "click", function() { ... });
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("eventDelegation", "click", function() { ... });
-m.on("eventDelegation", "contextmenu", function() { ... });
+m.on("eventDelegation", ".foo,.baz,.bar", "click", function() { ... });
+m.on("eventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
 </pre>
 			</div>
 			
@@ -180,9 +181,10 @@ m.on("eventDelegation", "contextmenu", function() { ... });
 			Mouseenter and mousexit are proprietary Internet Explorer events that are kind of useful, and for that reason Mottle offers a wrapper for them in other
 			browsers. The basic concept is that the event only fires when the mouse enters or exits the exact element on which the listener was bound. This differs from
 			the mousemove/mouseout events, which are fired on some element regardless of whether the event occurred on that specific element or one of its descendants.
-			<p>A listener is bound to the mouseenter and mouseexit events on the element below. Note that when the mouse pointer moves over the "inner" element, the
-			mouseexit event is fired, and when the mouse moves back out of the "inner" element, the mouseenter element is fired.
+			<p>A listener is bound to the mouseenter and mouseexit events on the element below. A single `mouseenter` event is fired when the mouse first
+			enters the event, and no more events are fired until the mouse exits the bounds of the event, at which time a `mouseexit` event is fired.
 			</p>
+			<p><strong>Note:</strong> this doesn't do anything on touch devices - there is no related concept.</p>
 			<div id="mouseEnterExit" class="demo">
 				<div class="inner">INNER</div>
 				<div class="debug"></div>
@@ -199,6 +201,7 @@ m.on("mouseEnterExit", "mouseexit", function() { ... });
 			<h3>Event Delegation + Mouseenter/mouseexit</h3>
 			Here we are mixing the `mouseenter` and `mouseexit` event wrappers with event delegation: the element
 			is registered as the delegate for the `mouseenter` and `mouseexit` events from the child elements inside.
+			<p><strong>Note:</strong> this doesn't do anything on touch devices - there is no related concept.</p>
 			<div id="mouseEnterExitDelegation" class="demo">
 				<div class="foo">1</div>
 				<div class="foo">2</div>
