@@ -43,19 +43,17 @@
 		return g;
 	};
 	
-	var _unstore = function(obj, event, fn, forceRemove) {
-		if (!fn.__taGenerated || forceRemove) {
-			delete obj.__ta[event][fn.__tauid];
-			// a handler might have attached extra functions, so we unbind those too.
-			if (fn.__taExtra) {
-				for (var i = 0; i < fn.__taExtra.length; i++) {
-					_unbind(obj, fn.__taExtra[i][0], fn.__taExtra[i][1]);
-				}
-				fn.__taExtra.length = 0;
+	var _unstore = function(obj, event, fn) {
+		delete obj.__ta[event][fn.__tauid];
+		// a handler might have attached extra functions, so we unbind those too.
+		if (fn.__taExtra) {
+			for (var i = 0; i < fn.__taExtra.length; i++) {
+				_unbind(obj, fn.__taExtra[i][0], fn.__taExtra[i][1]);
 			}
-			// a handler might have attached an unstore callback
-			fn.__taUnstore && fn.__taUnstore();
+			fn.__taExtra.length = 0;
 		}
+		// a handler might have attached an unstore callback
+		fn.__taUnstore && fn.__taUnstore();
 	};
 	
 	var _curryChildFilter = function(children, obj, fn, evt) {
@@ -91,17 +89,14 @@
 	
 	var SmartClickHandler = function(obj, evt, fn, children) {
 		var down = function(e) {
-				this.__taGenerated = true;
 				obj.__tad = _pageLocation(e);
 				return true;
 			},
 			up = function(e) {
-				this.__taGenerated = true;
 				obj.__tau = _pageLocation(e);
 				return true;
 			},
 			click = function(e) {
-				this.__taGenerated = true;
 				if (obj.__tad && obj.__tau && obj.__tad[0] == obj.__tau[0] && obj.__tad[1] == obj.__tau[1]) {
 					fn.apply((e.srcElement || e.target), [ e ]);
 				}
@@ -160,33 +155,21 @@
 						}
 					}
 				};
-				
 				_bind(obj, "mouseover", _curryChildFilter(children, obj, over, "mouseover"), over);
 
 				var out = function(e) {
-					this.__taGenerated = true;
 					var t = e.srcElement || e.target;
-					if (children == null) {
-						if (t == obj && !matchesSelector(e.relatedTarget, "*", obj)) {
-							obj.__tamee.over = false;
+					// is the current target one of the activeElements? and is the 
+					// related target NOT a descendant of it?
+					for (var i = 0; i < activeElements.length; i++) {
+						if (t == activeElements[i] && !matchesSelector(e.relatedTarget, "*", t)) {
+							t.__tamee.over = false;
+							activeElements.splice(i, 1);
 							meeHelper("mouseexit", e, obj, t);
-						}
-					}
-					else {
-						// otherwise a child selector was supplied. is the current target
-						// one of the activeElements? and is the related target NOT a
-						// descendant of it?
-						for (var i = 0; i < activeElements.length; i++) {
-							if (t == activeElements[i] && !matchesSelector(e.relatedTarget, "*", t)) {
-								t.__tamee.over = false;
-								activeElements.splice(i, 1);
-								meeHelper("mouseexit", e, obj, t);
-							}
 						}
 					}
 				};
 				_bind(obj, "mouseout", _curryChildFilter(children, obj, out, "mouseout"), out);
-				
 			}
 			
 			fn.__taUnstore = function() {
