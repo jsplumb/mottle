@@ -1,7 +1,7 @@
-#touch-adapter
+#mottle
 =============
 
-TouchAdapter is a simple wrapper that allows you to register event listeners for mouse events and have those listeners respond to the corresponding touch devices.  Support for `click`/`dblclick`/`contextmenu` is also included. I created this because I wanted a simple way to normalise a UI I was building across desktop and mobile, and I didn't need a mobile framework; just touch events.
+Mottle is a simple wrapper that allows you to register event listeners for mouse events and have those listeners respond to the corresponding touch devices.  Support for `click`/`dblclick`/`contextmenu` is also included. I created this because I wanted a simple way to normalise a UI I was building across desktop and mobile, and I didn't need a mobile framework; just touch events.
 
 ##Browser Support
 
@@ -11,7 +11,7 @@ Currently, all desktop browsers and iOS devices are supported.  Support for Andr
 
 #### 0.1
 
-Version 0.1 of TouchAdapter runs either stand alone (requiring no external library), or it can run on top of jQuery - which is to say that it maps to jQuery's event binding methods.  It was originally my intention to create other library wrappers, but I haven't yet got around to it. And, for reasons discussed in the 0.2 requirements section below, it is not likely I will get around to it.
+Version 0.1 of Mottle runs either stand alone (requiring no external library), or it can run on top of jQuery - which is to say that it maps to jQuery's event binding methods.  It was originally my intention to create other library wrappers, but I haven't yet got around to it. And, for reasons discussed in the 0.2 requirements section below, it is not likely I will get around to it.
 
 #### 0.2
 
@@ -25,7 +25,7 @@ The three basic touch events are mapped in this way:
 - __touchend__ -> __mouseup__
 - __touchmove__ -> __mousemove__
 
-In addition,TouchAdapter supports click, dblclick and contextmenu, by starting a timer on touchstart and then checking if the touchend event happens within a certain threshold afterwards.  For the `contextmenu` event, touch-adapter looks for a touchstart+touchend using two fingers (this is one way you can do a right-click on the Mac's trackpad).
+In addition,TouchAdapter supports `click`, `dblclick` and `contextmenu`, by starting a timer on touchstart and then checking if the touchend event happens within a certain threshold afterwards.  For the `contextmenu` event, touch-adapter looks for a touchstart+touchend using two fingers (this is one way you can do a right-click on the Mac's trackpad).
 
 ##Smart click handling (0.2 only)
 
@@ -37,7 +37,7 @@ By default, all browsers consider a `mouseup` event on some element on which the
 
 #### Constructor
 
-	var TouchAdapter = new TouchAdapter(PARAMS);
+	var mottle = new Mottle(PARAMS);
 
 Allowed constructor parameters are:
 
@@ -49,22 +49,22 @@ Allowed constructor parameters are:
 
 To directly bind an event handler on some element, use `bind`:
 
-	touchAdapter.bind(someElement, "click", aFunction);
-	touchAdapter.bind(someElement, "dblclick", anotherFunction);	
+	mottle.bind(someElement, "click", aFunction);
+	mottle.bind(someElement, "dblclick", anotherFunction);	
 
 To subsequently unbind, use `unbind`. Note you have to supply the original function:
 
-	touchAdapter.unbind(someOtherElement, "dblclick", anotherFunction);
+	mottle.unbind(someOtherElement, "dblclick", anotherFunction);
 
 #### Event Delegation
 
 To have some element act as an event handling delegate for some set of its child elements, use `on`:
 
-	touchAdapter.on(someElement, "div.foo, div.bar", "click", aFunction);
+	mottle.on(someElement, "div.foo, div.bar", "click", aFunction);
 
 To remove the event delegation, use `off`:
 
-	touchAdapter.off(someElement, "click", aFunction);
+	mottle.off(someElement, "click", aFunction);
 
 Note that the `off` function does not take a list of selectors as argument. It removes all event delegation for the set of child selectors with which the given function was registered.
 
@@ -76,20 +76,20 @@ Note that the `off` function does not take a list of selectors as argument. It r
 
 First create one:
 
-	var touchAdapter = new TouchAdapter();
+	var mottle = new Mottle();
 
 ..and you make calls to `bind` and `unbind`:
 
-	touchAdapter.bind(someElement, "click", aFunction);
-	touchAdapter.unbind(someOtherElement, "dblclick", anotherFunction);
+	mottle.bind(someElement, "click", aFunction);
+	mottle.unbind(someOtherElement, "dblclick", anotherFunction);
 
 Note that `bind` and `unbind` are chainable:
 
-	touchAdapter.bind(someElement, "click", aFunction).unbind(someOtherElement, "dblclick", anotherFunction);
+	mottle.bind(someElement, "click", aFunction).unbind(someOtherElement, "dblclick", anotherFunction);
 
-Your event callbacks, when using the standalone touch-adapter, will be passed native browser events.
+Your event callbacks, when using the standalone Mottle, will be passed native browser events.
 
-TouchAdapter's constructor can take a params object, with five possible values (all are optional):
+Mottle's constructor can take a params object, with five possible values (all are optional):
 
 - __bind__ a function to use for binding event listeners. if this is not provided, touch-adapter uses its own default method.
 - __unbind__ a function to use for unbinding event listeners. Same deal as for bind if not provided.
@@ -99,24 +99,24 @@ TouchAdapter's constructor can take a params object, with five possible values (
 
 ###jQuery
 
-The jQuery touch-adapter can be used either as a JS object that you instantiate, but it also registers itself as a plugin.
+The jQuery Mottle can be used either as a JS object that you instantiate, but it also registers itself as a plugin.
 
 ####jQuery Standalone
 
-Using the jQuery touch-adapter standalone is a lot like using the native standalone version:
+Using the jQuery Mottle standalone is a lot like using the native standalone version:
 
-	var touchAdapter = new jQueryTouchAdapter();
+	var mottle = new jQueryMottle();
 
 ..and you then make calls to `bind` and `unbind`:
 
-	touchAdapter.bind(someElement, "click", aFunction);
-	touchAdapter.unbind(someOtherElement, "dblclick", anotherFunction);
+	mottle.bind(someElement, "click", aFunction);
+	mottle.unbind(someOtherElement, "dblclick", anotherFunction);
 
 (when I say a lot like it, I mean __the same__).  The only difference is that your callbacks will be passed jQuery event objects.
 
 ####jQuery Plugin
 
-For lovers of selector soup, touch-adapter registers two handy methods on the jQuery function object:
+For lovers of selector soup, Mottle registers two handy methods on the jQuery function object:
 
 	$("#someElement").taBind("click", someFunction);
 	$("#someElement").taUnbind("dblclick", someOtherFunction);

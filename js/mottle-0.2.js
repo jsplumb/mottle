@@ -3,9 +3,9 @@
 	click, mousedown, mouseup and mousemove, and the touch adapter will automatically register corresponding
 	touch events for each of these.  'click' and 'dblclick' are achieved through setting a timer on touchstart and
 	firing an event on touchend if the timer has not yet expired. The delay for this timer can be set on 
-	the touchadapter's constructor (clickThreshold); the default is 150ms.
+	the Mottle's constructor (clickThreshold); the default is 150ms.
 
-	TouchAdapter has no dependencies except for the matchesSelector polyfill script.
+	Mottle has no external dependencies.
 */
 ;(function() {
 
@@ -26,14 +26,15 @@
 	};
 
 	var isTouchDevice = "ontouchstart" in document.documentElement,
+		isMouseDevice = "onmousedown" in document.documentElement,
 		downEvent = isTouchDevice ? "touchstart" : "mousedown",
 		upEvent = isTouchDevice ? "touchend" : "mouseup",
 		moveEvent = isTouchDevice ? "touchmove" : "mousemove",
 		touchMap = { "mousedown":"touchstart", "mouseup":"touchend", "mousemove":"touchmove" },
 		click="click", dblclick="dblclick",contextmenu="contextmenu",
 		touchstart="touchstart",touchend="touchend",touchmove="touchmove",
-		ta_down = "__touchAdapterDown", ta_up = "__touchAdapterUp", 
-		ta_context_down = "__touchAdapterContextDown", ta_context_up = "__touchAdapterContextUp",
+		ta_down = "__MottleDown", ta_up = "__MottleUp", 
+		ta_context_down = "__MottleContextDown", ta_context_up = "__MottleContextUp",
 		iev = (function() {
 		        var rv = -1; 
 		        if (navigator.appName == 'Microsoft Internet Explorer') {
@@ -53,23 +54,17 @@
 				var ts = _touches(e), t = _getTouch(ts, 0);
 				// this is for iPad. may not fly for Android.
 				return [t.pageX, t.pageY];
-			}        	
+			}
 		},
 		// 
 		// extracts the touch with the given index from the list of touches
 		//
-		_getTouch = function(touches, idx) {
-			return touches.item ? touches.item(idx) : touches[idx];
-		},
+		_getTouch = function(touches, idx) { return touches.item ? touches.item(idx) : touches[idx]; },
 		//
 		// gets the touches from the given event, if they exist. otherwise sends the original event back.
 		//
-		_touches = function(e) {	
-			return e.touches || [ e ];
-		},
-		_touchCount = function(e) {
-			return _touches(e).length || 1;
-		},
+		_touches = function(e) { return e.touches || [ e ]; },
+		_touchCount = function(e) { return _touches(e).length || 1; },
 		//http://www.quirksmode.org/blog/archives/2005/10/_and_the_winner_1.html
 		_bind = function( obj, type, fn ) {
 			if (obj.addEventListener)
@@ -88,9 +83,10 @@
 				obj[type+fn] = null;
 				obj["e"+type+fn] = null;
 			}
-		};	
+		},
+		_devNull = function() {};
 
-	window.TouchAdapter = function(params) {
+	window.Mottle = function(params) {
 		params = params || {};
 		var self = this, 
 			guid = 1,						
@@ -120,6 +116,11 @@
 				"touchend":_smartClick.up,
 				"click":_smartClick.click
 			},
+			//
+			// this function generates a guid for every handler, sets it on the handler, then adds
+			// it to the associated object's map of handlers for the given event. this is what enables us 
+			// to unbind all events of some type, or all events (the second of which can be requested by the user, 
+			// but it also used by Mottle when an element is removed.)
 			_store = function(obj, event, fn) {
 				var g = guid++;
 				obj.__ta = obj.__ta || {};
@@ -136,13 +137,21 @@
 			// wrap bind function to provide "smart" click functionality, which prevents click events if
 			// the mouse has moved between up and down.
 			__bind = function(obj, evt, fn) {
+				
+				// mouseenter/mouseexit get special treatment: they should only fire if the
+				// event has occurred on the element on which it was registered; descendants
+				// should be ignored.
+				if (evt == "mouseenter") {
+					_registerMouseEnter(obj, fn);
+				}
+				
 				if (_smartClicks) {
 					var _fn = fn;
-					fn = function(e) {																
+					fn = function(e) {
 						if (_smartClickHandlers[evt] == null || _smartClickHandlers[evt](e, obj))
 							_fn.apply(this, arguments);
 					};
-				}				
+				}
 				_store(obj, evt, fn);
 				_bind(obj, evt, fn);				
 			},
@@ -172,29 +181,49 @@
 							}
 
 							handler.lastClick = t;
-						}					
-						else 	
-							fn(handler.originalEvent);						
+						}
+						else
+							fn(handler.originalEvent);
 					}
 					handler.down = null;
-					window.clearTimeout(handler.timeout);						
+					window.clearTimeout(handler.timeout);
 				};				
 				fn[eventIds[1]] = up;	
 				__bind(obj, touchend, up);
+			},
+			_registerMouseEnter = function(obj, fn) {
+				// HERE we need to be able to support multiple mouseenter binds.
+				obj.__taover = false;
+				var ofn = function(e) {
+					var t = e.srcElement || e.target;
+					if (obj != t && obj.__taover) {
+						obj.__taover = false;
+						console.log("FIRE MOUSE EXIT")
+					}
+					else if (!obj.__taover) {
+						obj.__taover = true;
+						console.log("FIRE MOUSE ENTER");
+					}
+					
+				}
 			};
 
 		
 		/**
-		* @name TouchAdapter#bind
+		* @name Mottle#bind
 		* @function
 		* @desc Bind an event listener.
 		* @param {Element} obj Element to bind event listener to.
 		* @param {String} evt Event id. Will be automatically converted from mousedown etc to their touch equivalents if this is a touch device.
 		* @param {Function} fn Function to bind.
-		* @returns {TouchAdapter} The touch adapter; you can chain this method.
+		* @returns {Mottle} The touch adapter; you can chain this method.
 		*/
 		this.bind = function(obj, evt, fn) {
-			if (isTouchDevice) {			
+			//
+			// TODO: some devices are both and touch AND mouse. we shouldn't make the
+			// two cases mutually exclusive. 
+			// also, it would be nice to refactor this.
+			if (isTouchDevice) {
 				if (evt === click) {
 					_addClickWrapper(obj, fn, 1, [ta_down, ta_up]);
 				}
@@ -215,13 +244,13 @@
 		};
 
 		/**
-		* @name TouchAdapter#unbind
+		* @name Mottle#unbind
 		* @function
 		* @desc Unbind an event listener.
 		* @param {Element} obj Element to unbind event listener from.
 		* @param {String} evt Event id. Will be automatically converted from mousedown etc to their touch equivalents if this is a touch device.
 		* @param {Function} fn Function to unbind.
-		* @returns {TouchAdapter} The touch adapter; you can chain this method.
+		* @returns {Mottle} The touch adapter; you can chain this method.
 		*/
 		this.unbind = function(obj, evt, fn) {
 			if (isTouchDevice) {
@@ -248,7 +277,7 @@
 		};
 
 		/**
-		* @name TouchAdapter#remove
+		* @name Mottle#remove
 		* @function
 		* @desc Removes an element from the DOM, and unregisters all event handlers for it. You should use this
 		* to ensure you don't leak memory.
@@ -283,7 +312,7 @@
 			_delegates = {};
 
 		/**
-		* @name TouchAdapter#on
+		* @name Mottle#on
 		* @function
 		* @desc Delegate event handling for `children` to a single event listener on `el`.
 		* @param {Element} el Element to act as delegate.
@@ -300,7 +329,7 @@
 		};	
 
 		/**
-		* @name TouchAdapter#off
+		* @name Mottle#off
 		* @function
 		* @desc Cancel delegate event handling for the given function. Note that unlike with 'on' you cannot supply
 		* a list of child selectors here: it removes event delegation from all of the child selectors for which the
@@ -316,5 +345,26 @@
 				delete _delegates[dlf.__tauid];
 			}
 		};
+
+		this.trigger = function(el, event, originalEvent) {
+			var evt;
+			if (document.createEvent) {
+				evt = document.createEvent("MouseEvents");
+				evt.initMouseEvent(event, true, true, window, 0,
+								   originalEvent.screenX, originalEvent.screenY,
+								   originalEvent.clientX, originalEvent.clientY,
+								   false, false, false, false, 1, null);
+				el.dispatchEvent(evt);
+			}
+			else if (document.createEventObject) {
+				evt = document.createEventObject();
+				evt.eventType = evt.eventName = event;
+				evt.screenX = originalEvent.screenX;
+				evt.screenY = originalEvent.screenY;
+				evt.clientX = originalEvent.clientX;
+				evt.clientY = originalEvent.clientY;
+				el.fireEvent('on' + event, evt);
+			}
+		}
 	};
 })();

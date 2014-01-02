@@ -1,5 +1,5 @@
 /*
-jQuery wrapper for TouchAdapter
+jQuery wrapper for Mottle
 */
 ;(function() {
 	
@@ -8,15 +8,15 @@ jQuery wrapper for TouchAdapter
 		defaultUnwrap = function(e) { return e.originalEvent; };
 
 	/**
-		TouchAdapter bound to jQuery's event binders, using 'on' and 'off' by default. This means it works for 1.7.x and above by default.
+		Mottle bound to jQuery's event binders, using 'on' and 'off' by default. This means it works for 1.7.x and above by default.
 	*/
-	window.jQueryTouchAdapter = function(params) {
+	window.jQueryMottle = function(params) {
 		params = params || {};
 		params.bind = params.bind || defaultBind;
 		params.unbind = params.unbind || defaultUnbind;
 		params.unwrap = params.unwrap || defaultUnwrap;
 
-		TouchAdapter.apply(this, [ params ]);
+		Mottle.apply(this, [ params ]);
 	};
 
 	/*
@@ -30,7 +30,7 @@ jQuery wrapper for TouchAdapter
 	(function( $ ) {
 	  $.fn.taBind = function(evt, fn) {
 	  
-	  	var jqt = new jQueryTouchAdapter();
+	  	var jqt = new jQueryMottle();
 
 	    return this.each(function() {
 	      jqt.bind($(this), evt, fn);
@@ -38,7 +38,7 @@ jQuery wrapper for TouchAdapter
 	  };
 	  $.fn.taUnbind = function(evt, fn) {
 	  
-	  	var jqt = new jQueryTouchAdapter();
+	  	var jqt = new jQueryMottle();
 
 	    return this.each(function() {
 	      jqt.unbind($(this), evt, fn);

@@ -3,9 +3,9 @@
 	click, mousedown, mouseup and mousemove, and the touch adapter will automatically register corresponding
 	touch events for each of these.  'click' and 'dblclick' are achieved through setting a timer on touchstart and
 	firing an event on touchend if the timer has not yet expired. The delay for this timer can be set on 
-	the touchadapter's constructor (clickThreshold); the default is 150ms.
+	the Mottle's constructor (clickThreshold); the default is 150ms.
 
-	TouchAdapter has no dependencies, but can integrate with supporting libraries such as jQuery. See docs.
+	Mottle has no dependencies, but can integrate with supporting libraries such as jQuery. See docs.
 */
 ;(function() {
 
@@ -16,10 +16,10 @@
 		upEvent = isTouchDevice ? touchend : mouseup,
 		moveEvent = isTouchDevice ? touchmove : mousemove,
 		touchMap = { "mousedown":touchstart, "mouseup":touchend, "mousemove":touchmove },
-		ta_is_down = "__touchAdaptorIsDown", ta_click_timeout = "__touchAdaptorClickTimeout",
+		ta_is_down = "__MottleIsDown", ta_click_timeout = "__MottleClickTimeout",
 		ta_context_menu_timeout = "__touchAdaptorContextMenuTimeout",
-		ta_down = "__touchAdapterDown", ta_up = "__touchAdapterUp", 
-		ta_context_down = "__touchAdapterContextDown", ta_context_up = "__touchAdapterContextUp",
+		ta_down = "__MottleDown", ta_up = "__MottleUp", 
+		ta_context_down = "__MottleContextDown", ta_context_up = "__MottleContextUp",
 		iev = (function() {
 		        var rv = -1; 
 		        if (navigator.appName == 'Microsoft Internet Explorer') {
@@ -84,7 +84,7 @@
 			}
 		};	
 
-	window.TouchAdapter = function(params) {
+	window.Mottle = function(params) {
 		params = params || {};
 		var self = this, 
 			guid = 1,
@@ -198,13 +198,13 @@
 
 		
 		/**
-		* @name TouchAdapter#bind
+		* @name Mottle#bind
 		* @function
 		* @desc Bind an event listener.
 		* @param {Element} obj Element to bind event listener to.
 		* @param {String} evt Event id. Will be automatically converted from mousedown etc to their touch equivalents if this is a touch device.
 		* @param {Function} fn Function to bind.
-		* @returns {TouchAdapter} The touch adapter; you can chain this method.
+		* @returns {Mottle} The touch adapter; you can chain this method.
 		*/
 		this.bind = function(obj, evt, fn) {
 			if (isTouchDevice) {			
@@ -228,13 +228,13 @@
 		};
 
 		/**
-		* @name TouchAdapter#unbind
+		* @name Mottle#unbind
 		* @function
 		* @desc Unbind an event listener.
 		* @param {Element} obj Element to unbind event listener from.
 		* @param {String} evt Event id. Will be automatically converted from mousedown etc to their touch equivalents if this is a touch device.
 		* @param {Function} fn Function to unbind.
-		* @returns {TouchAdapter} The touch adapter; you can chain this method.
+		* @returns {Mottle} The touch adapter; you can chain this method.
 		*/
 		this.unbind = function(obj, evt, fn) {
 			if (isTouchDevice) {
@@ -261,7 +261,7 @@
 		};
 
 		/**
-		* @name TouchAdapter#remove
+		* @name Mottle#remove
 		* @function
 		* @desc Removes an element from the DOM, and unregisters all event handlers for it. You should use this
 		* to ensure you don't leak memory.
