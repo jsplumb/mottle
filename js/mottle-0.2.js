@@ -25,7 +25,7 @@
 		return false;
 	};
 	
-	var _curryChildFilter = function(children, obj, fn) {
+	var _curryChildFilter = function(children, obj, fn, evt) {
 		if (children == null) return fn;
 		else {
 			var c = children.split(",");
@@ -37,13 +37,16 @@
 						fn.apply(t, arguments);
 					}
 				}
+				fn.__taUnstore = function() {
+					_unbind(obj, evt, this);
+				};
 			};
 		}
 	};
 	
 	var DefaultHandler = function(obj, evt, fn, _store, _unstore, children) {
 		_store(obj, evt, fn);
-		_bind(obj, evt, _curryChildFilter(children, obj, fn));
+		_bind(obj, evt, _curryChildFilter(children, obj, fn, evt));
 	};
 	
 	var SmartClickHandler = function(obj, evt, fn, _store, _unstore, children) {
@@ -121,7 +124,7 @@
 			};
 			
 			_store(obj, "mouseover", over);
-			_bind(obj, "mouseover", _curryChildFilter(children, obj, over));
+			_bind(obj, "mouseover", _curryChildFilter(children, obj, over, "mouseover"));
 			
 			var out = function(e) {
 				this.__taGenerated = true;
@@ -134,7 +137,7 @@
 				}
 			};
 			_store(obj, "mouseout", out);
-			_bind(obj, "mouseout", _curryChildFilter(children, obj, out));
+			_bind(obj, "mouseout", _curryChildFilter(children, obj, out, "mouseout"));
 		}
 		
 		fn.__taUnstore = function() {
@@ -395,12 +398,12 @@
 		* @returns {Mottle} The current Mottle instance; you can chain this method.
 		*/
 		this.off = function(el, event, fn) {
-			var dlf = fn.__tauid ? _delegates[fn.__tauid] : null;
+			/*var dlf = fn.__tauid ? _delegates[fn.__tauid] : null;
 			if (dlf) {
 				_doUnbind(el, event, dlf);
 				delete _delegates[dlf.__tauid];
 			}
-			else
+			else*/
 				_doUnbind(el, event, fn);
 
 			return this;
