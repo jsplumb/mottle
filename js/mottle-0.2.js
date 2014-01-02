@@ -24,6 +24,126 @@
 		}
 		return false;
 	};
+	
+	var _curryChildFilter = function(children, obj, fn) {
+		if (children == null) return fn;
+		else {
+			var c = children.split(",");
+			return function(e) {
+				this.__tauid = fn.__tauid;
+				var t = e.srcElement || e.target;
+				for (var i = 0; i < c.length; i++) {
+					if (matchesSelector(t, c[i], obj)) {
+						fn.apply(t, arguments);
+					}
+				}
+			};
+		}
+	};
+	
+	var DefaultHandler = function(obj, evt, fn, _store, _unstore, children) {
+		_store(obj, evt, fn);
+		_bind(obj, evt, _curryChildFilter(children, obj, fn));
+	};
+	
+	var SmartClickHandler = function(obj, evt, fn, _store, _unstore, children) {
+		var down = function(e) {
+				this.__taGenerated = true;
+				obj.__tad = _pageLocation(e);
+				return true;
+			},
+			up = function(e) {
+				this.__taGenerated = true;
+				obj.__tau = _pageLocation(e);
+				return true;
+			},
+			click = function(e) {
+				this.__taGenerated = true;
+				if (obj.__tad && obj.__tau && obj.__tad[0] == obj.__tau[0] && obj.__tad[1] == obj.__tau[1]) {
+					fn.apply((e.srcElement || e.target), [ e ]);
+				}
+			};
+			
+		// TODO TOUCH
+		DefaultHandler(obj, "mousedown", down, _store, _unstore, children);
+		DefaultHandler(obj, "mouseup", up, _store, _unstore, children);
+		DefaultHandler(obj, "click", click, _store, _unstore, children);
+		
+		_store(obj, evt, fn);
+		
+		// TODO ensure they are not unbound by a general "unbind mousedown or mouseup" call.
+		
+		fn.__taUnstore = function() {
+			_unbind(obj, "mousedown", down);
+			_unstore(obj, "mousedown", down, true);
+			_unbind(obj, "mouseup", up);
+			_unstore(obj, "mouseup", up, true);
+			_unbind(obj, "click", click);
+			_unstore(obj, "click", click, true);
+		};
+	};
+	
+	var TouchEventHandler = function(obj, fn, _store) {
+		
+	};
+	
+	var meeHelper = function(type, evt, obj, target) {
+		for (var i in obj.__tamee[type]) {
+			obj.__tamee[type][i].apply(target, [ evt ]);
+		}
+	};
+	var MouseEnterExitHandler = function(obj, evt, fn, _store, _unstore, children) {
+		if (!obj.__tamee) {
+			// __tamee holds a flag saying whether the mouse is currently "in" the element, and a list of
+			// both mouseenter and mouseexit functions.
+			obj.__tamee = {
+				over:false,
+				mouseenter:{},
+				mouseexit:{}
+			};
+			// now register over and out functions (one time only)
+			var over = function(e) {
+				this.__taGenerated = true;
+				var t = e.srcElement || e.target;
+				// we have the event target. were children defined?
+				if (t !== obj && obj.__tamee.over) {
+					t.__tamee = t._tamee || {};
+					t.__tamee.over = false;
+					obj.__tamee.over = false;
+					meeHelper("mouseexit", e, obj, t);
+				}
+				else if (!obj.__tamee.over) {
+					t.__tamee = t._tamee || {};
+					t.__tamee.over = true;
+					obj.__tamee.over = true;
+					meeHelper("mouseenter", e, obj, t);
+				}
+			};
+			
+			_store(obj, "mouseover", over);
+			_bind(obj, "mouseover", _curryChildFilter(children, obj, over));
+			
+			var out = function(e) {
+				this.__taGenerated = true;
+				var t = e.srcElement || e.target;
+				if (t !== obj && obj.__tamee.over) {
+					t.__tamee = t._tamee || {};
+					t.__tamee.over = false;
+					obj.__tamee.over = false;
+					meeHelper("mouseexit", e, obj);
+				}
+			};
+			_store(obj, "mouseout", out);
+			_bind(obj, "mouseout", _curryChildFilter(children, obj, out));
+		}
+		
+		fn.__taUnstore = function() {
+			delete obj.__tamee[evt][fn.__tauid];
+		};
+		_store(obj, evt, fn);
+		obj.__tamee[evt][fn.__tauid] = fn;
+		
+	};
 
 	var isTouchDevice = "ontouchstart" in document.documentElement,
 		isMouseDevice = "onmousedown" in document.documentElement,
@@ -89,33 +209,10 @@
 	window.Mottle = function(params) {
 		params = params || {};
 		var self = this, 
-			guid = 1,						
+			guid = 1,
 			clickThreshold = params.clickThreshold || 150,
-			dlbClickThreshold = params.dblClickThreshold || 250,			
-			_smartClicks = params.smartClicks,	
-			_smartClick = {
-				down:function(e, obj) {						
-					obj.__tad = _pageLocation(e);
-					return true;
-				},
-				up:function(e, obj) {				
-					obj.__tau = _pageLocation(e);
-					return true;
-				},
-				click:function(e, obj) {
-					if (obj.__tad && obj.__tau) {
-						return obj.__tad[0] == obj.__tau[0] && obj.__tad[1] == obj.__tau[1];
-					}
-					return true;
-				}
-			},		
-			_smartClickHandlers = {
-				"mousedown":_smartClick.down,
-				"mouseup":_smartClick.up,
-				"touchstart":_smartClick.down,
-				"touchend":_smartClick.up,
-				"click":_smartClick.click
-			},
+			dlbClickThreshold = params.dblClickThreshold || 250,
+			_smartClicks = params.smartClicks,
 			//
 			// this function generates a guid for every handler, sets it on the handler, then adds
 			// it to the associated object's map of handlers for the given event. this is what enables us 
@@ -131,30 +228,24 @@
 				fn.__tauid = g;
 				return g;
 			},
-			_unstore = function(obj, event, fn) {
-				delete obj.__ta[event][fn.__tauid];
+			_unstore = function(obj, event, fn, forceRemove) {
+				if (!fn.__taGenerated || forceRemove) {
+					delete obj.__ta[event][fn.__tauid];
+					// a handler might have attached an unstore function, to remove its helper stuff.
+					fn.__taUnstore && fn.__taUnstore();
+				}
 			},
 			// wrap bind function to provide "smart" click functionality, which prevents click events if
 			// the mouse has moved between up and down.
-			__bind = function(obj, evt, fn) {
-				
-				// mouseenter/mouseexit get special treatment: they should only fire if the
-				// event has occurred on the element on which it was registered; descendants
-				// should be ignored.
-				if (evt == "mouseenter") {
-					_registerMouseEnter(obj, fn);
-				}
-				
-				if (_smartClicks) {
-					var _fn = fn;
-					fn = function(e) {
-						if (_smartClickHandlers[evt] == null || _smartClickHandlers[evt](e, obj))
-							_fn.apply(this, arguments);
-					};
-				}
-				_store(obj, evt, fn);
-				_bind(obj, evt, fn);				
+			__bind = function(obj, evt, fn, children) {
+				if (_smartClicks && (evt === "click" || evt === "dblclick"))
+					SmartClickHandler(obj, evt, fn, _store, _unstore, children);
+				else if (evt === "mouseenter" || evt == "mouseexit")
+					MouseEnterExitHandler(obj, evt, fn, _store, _unstore, children);
+				else 
+					DefaultHandler(obj, evt, fn, _store, _unstore, children);
 			},
+			// TODO MOVE TO A HANDLER
 			_addClickWrapper = function(obj, fn, touchCount, eventIds, supportDoubleClick) {
 				var handler = { down:false, touches:0, originalEvent:null, lastClick:null, timeout:null };
 				var down = function(e) {						
@@ -190,35 +281,10 @@
 				};				
 				fn[eventIds[1]] = up;	
 				__bind(obj, touchend, up);
-			},
-			_registerMouseEnter = function(obj, fn) {
-				// HERE we need to be able to support multiple mouseenter binds.
-				obj.__taover = false;
-				var ofn = function(e) {
-					var t = e.srcElement || e.target;
-					if (obj != t && obj.__taover) {
-						obj.__taover = false;
-						console.log("FIRE MOUSE EXIT")
-					}
-					else if (!obj.__taover) {
-						obj.__taover = true;
-						console.log("FIRE MOUSE ENTER");
-					}
-					
-				}
 			};
 
-		
-		/**
-		* @name Mottle#bind
-		* @function
-		* @desc Bind an event listener.
-		* @param {Element} obj Element to bind event listener to.
-		* @param {String} evt Event id. Will be automatically converted from mousedown etc to their touch equivalents if this is a touch device.
-		* @param {Function} fn Function to bind.
-		* @returns {Mottle} The touch adapter; you can chain this method.
-		*/
-		this.bind = function(obj, evt, fn) {
+		var _doBind = function(obj, evt, fn, children) {
+			obj = typeof obj === "string" ? document.getElementById(obj) : obj;
 			//
 			// TODO: some devices are both and touch AND mouse. we shouldn't make the
 			// two cases mutually exclusive. 
@@ -238,21 +304,13 @@
 				}
 			}
 			else 
-				__bind(obj, evt, fn);
+				__bind(obj, evt, fn, children);
 
 			return self;
 		};
 
-		/**
-		* @name Mottle#unbind
-		* @function
-		* @desc Unbind an event listener.
-		* @param {Element} obj Element to unbind event listener from.
-		* @param {String} evt Event id. Will be automatically converted from mousedown etc to their touch equivalents if this is a touch device.
-		* @param {Function} fn Function to unbind.
-		* @returns {Mottle} The touch adapter; you can chain this method.
-		*/
-		this.unbind = function(obj, evt, fn) {
+		
+		var _doUnbind = function(obj, evt, fn) {
 			if (isTouchDevice) {
 				if (evt === click) {					
 					_unbind(obj, touchstart, fn[ta_down]);
@@ -297,55 +355,67 @@
 			}
 		};
 
-		var _makeDelegateFunction = function(el, children, fn) {
-				var c = children.split(",");
-				return function(e) {
-					var t = e.srcElement || e.target;
-					for (var i = 0; i < c.length; i++) {
-						if (matchesSelector(t, c[i], el)) {
-							fn.apply(c[i], arguments);
-							return;
-						}
-					}
-				};
-			},
-			_delegates = {};
-
 		/**
 		* @name Mottle#on
 		* @function
-		* @desc Delegate event handling for `children` to a single event listener on `el`.
-		* @param {Element} el Element to act as delegate.
+		* @desc Register an event handler, optionally as a delegate for some set of descendant elements. Note
+		* that this method takes either 3 or 4 arguments - if you supply 3 arguments it is assumed you have 
+		* omitted the `children` parameter, and that the event handler should be bound directly to the given element.
+		* @param {Element|String} el Element - or ID of element - to bind event listener to.
+		* @param {String} [children] Comma-delimited list of selectors identifying allowed children.
 		* @param {String} event Event ID.
-		* @param {String} children Comma-delimited list of selectors identifying allowed children.
 		* @param {Function} fn Event handler function.
+		* @returns {Mottle} The current Mottle instance; you can chain this method.
 		*/
 		this.on = function(el, children, event, fn) {
-			var dlf = _makeDelegateFunction(el, children, fn);
+			var _el = arguments[0],
+				_c = arguments.length == 4 ? arguments[1] : null,
+				_e = arguments[arguments.length - 2],
+				_f = arguments[arguments.length - 1];
+				
+			/*var dlf = _makeDelegateFunction(el, children, fn);
 			this.bind(el, event, dlf);
 			fn.__tauid = dlf.__tauid; // copy the touch adapter guid into the original function. then unbind will work.
-			_delegates[dlf.__tauid] = dlf;
+			_delegates[dlf.__tauid] = dlf;*/
+			//this.bind(el, event, fn, children);
+			_doBind(_el, _e, _f, _c);
+			
 			return this;
 		};	
 
 		/**
 		* @name Mottle#off
 		* @function
-		* @desc Cancel delegate event handling for the given function. Note that unlike with 'on' you cannot supply
+		* @desc Cancel delegate event handling for the given function. Note that unlike with 'on' you do not supply
 		* a list of child selectors here: it removes event delegation from all of the child selectors for which the
-		* given function was registered.
-		* @param {Element} el Element acting as delegate.
+		* given function was registered (if any).
+		* @param {Element|String} el Element - or ID of element - from which to remove event listener.
 		* @param {String} event Event ID.
 		* @param {Function} fn Event handler function.
+		* @returns {Mottle} The current Mottle instance; you can chain this method.
 		*/
 		this.off = function(el, event, fn) {
 			var dlf = fn.__tauid ? _delegates[fn.__tauid] : null;
 			if (dlf) {
-				this.unbind(el, event, dlf);
+				_doUnbind(el, event, dlf);
 				delete _delegates[dlf.__tauid];
 			}
+			else
+				_doUnbind(el, event, fn);
+
+			return this;
 		};
 
+		/**
+		* @name Mottle#trigger
+		* @function
+		* @desc Triggers some event for a given element.
+		* @param {Element} el Element for which to trigger the event.
+		* @param {String} event Event ID.
+		* @param {Event} originalEvent The original event. Should be optional of course, but currently is not, due
+		* to the jsPlumb use case that caused this method to be added.
+		* @returns {Mottle} The current Mottle instance; you can chain this method.
+		*/
 		this.trigger = function(el, event, originalEvent) {
 			var evt;
 			if (document.createEvent) {
@@ -365,6 +435,7 @@
 				evt.clientY = originalEvent.clientY;
 				el.fireEvent('on' + event, evt);
 			}
+			return this;
 		}
 	};
 })();
