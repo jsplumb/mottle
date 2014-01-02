@@ -9,11 +9,12 @@
 */
 ;(function() {
 
-	var ms = typeof HTMLElement != "undefined" ? (HTMLElement.prototype.webkitMatchesSelector || HTMLElement.prototype.mozMatchesSelector || HTMLElement.prototype.oMatchesSelector || HTMLElement.prototype.msMatchesSelector) : null;
+	// matcheSelector seems to not honour the context. which makes it kind of useless here.
+	//var ms = typeof HTMLElement != "undefined" ? (HTMLElement.prototype.webkitMatchesSelector || HTMLElement.prototype.mozMatchesSelector || HTMLElement.prototype.oMatchesSelector || HTMLElement.prototype.msMatchesSelector) : null;
 	var matchesSelector = function(el, selector, ctx) {
-		if (ms) {
+		/*if (ms) {
 			return ms.apply(el, [ selector, ctx ]);
-		} 
+		} */
 
 		ctx = ctx || el.parentNode;
 		var possibles = ctx.querySelectorAll(selector);
@@ -23,6 +24,38 @@
 			}
 		}
 		return false;
+	};
+	
+	var guid = 1;
+	//
+	// this function generates a guid for every handler, sets it on the handler, then adds
+	// it to the associated object's map of handlers for the given event. this is what enables us 
+	// to unbind all events of some type, or all events (the second of which can be requested by the user, 
+	// but it also used by Mottle when an element is removed.)
+	var _store = function(obj, event, fn) {
+		var g = guid++;
+		obj.__ta = obj.__ta || {};
+		obj.__ta[event] = obj.__ta[event] || {};
+		// store each handler with a unique guid.
+		obj.__ta[event][g] = fn;
+		// set the guid on the handler.
+		fn.__tauid = g;
+		return g;
+	};
+	
+	var _unstore = function(obj, event, fn, forceRemove) {
+		if (!fn.__taGenerated || forceRemove) {
+			delete obj.__ta[event][fn.__tauid];
+			// a handler might have attached extra functions, so we unbind those too.
+			if (fn.__taExtra) {
+				for (var i = 0; i < fn.__taExtra.length; i++) {
+					_unbind(obj, fn.__taExtra[i][0], fn.__taExtra[i][1]);
+				}
+				fn.__taExtra.length = 0;
+			}
+			// a handler might have attached an unstore callback
+			fn.__taUnstore && fn.__taUnstore();
+		}
 	};
 	
 	var _curryChildFilter = function(children, obj, fn, evt) {
@@ -52,11 +85,11 @@
 		fn.__taExtra.push([evt, newFn]);
 	};
 	
-	var DefaultHandler = function(obj, evt, fn, _store, _unstore, children) {
-		_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn, _store);
+	var DefaultHandler = function(obj, evt, fn, children) {
+		_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
 	};
 	
-	var SmartClickHandler = function(obj, evt, fn, _store, _unstore, children) {
+	var SmartClickHandler = function(obj, evt, fn, children) {
 		var down = function(e) {
 				this.__taGenerated = true;
 				obj.__tad = _pageLocation(e);
@@ -75,9 +108,9 @@
 			};
 			
 		// TODO TOUCH
-		DefaultHandler(obj, "mousedown", down, _store, _unstore, children);
-		DefaultHandler(obj, "mouseup", up, _store, _unstore, children);
-		DefaultHandler(obj, "click", click, _store, _unstore, children);
+		DefaultHandler(obj, "mousedown", down, children);
+		DefaultHandler(obj, "mouseup", up, children);
+		DefaultHandler(obj, "click", click, children);
 		
 		// TODO ensure they are not unbound by a general "unbind mousedown or mouseup" call.
 		registerExtraFunction(fn, "mousedown", down);
@@ -85,7 +118,7 @@
 		registerExtraFunction(fn, "click", click);
 	};
 	
-	var TouchEventHandler = function(obj, fn, _store) {
+	var TouchEventHandler = function(obj, evt, fn, children) {
 		
 	};
 	
@@ -94,58 +127,75 @@
 			obj.__tamee[type][i].apply(target, [ evt ]);
 		}
 	};
-	var MouseEnterExitHandler = function(obj, evt, fn, _store, _unstore, children) {
-		if (!obj.__tamee) {
-			// __tamee holds a flag saying whether the mouse is currently "in" the element, and a list of
-			// both mouseenter and mouseexit functions.
-			obj.__tamee = {
-				over:false,
-				mouseenter:[],
-				mouseexit:[]
+	
+	var MouseEnterExitHandler = function() {
+		var activeElements = [];
+		return function(obj, evt, fn, children) {
+			if (!obj.__tamee) {
+				// __tamee holds a flag saying whether the mouse is currently "in" the element, and a list of
+				// both mouseenter and mouseexit functions.
+				obj.__tamee = {
+					over:false,
+					mouseenter:[],
+					mouseexit:[]
+				};
+				// now register over and out functions (one time only)
+				var over = function(e) {
+					var t = e.srcElement || e.target;
+					if (children == null) {
+						if (t == obj && !obj.__tamee.over) {
+							meeHelper("mouseenter", e, obj, t);
+							obj.__tamee.over = true;
+							activeElements.push(obj);
+						}
+					}
+					else {
+						// otherwise a child selector was supplied; does the target
+						// match this selector?
+						if (matchesSelector(t, children, obj) && (t.__tamee == null || !t.__tamee.over)) {
+							meeHelper("mouseenter", e, obj, t);
+							t.__tamee = t.__tamee || {};
+							t.__tamee.over = true;
+							activeElements.push(t);
+						}
+					}
+				};
+				
+				_bind(obj, "mouseover", _curryChildFilter(children, obj, over, "mouseover"), over);
+
+				var out = function(e) {
+					this.__taGenerated = true;
+					var t = e.srcElement || e.target;
+					if (children == null) {
+						if (t == obj && !matchesSelector(e.relatedTarget, "*", obj)) {
+							obj.__tamee.over = false;
+							meeHelper("mouseexit", e, obj, t);
+						}
+					}
+					else {
+						// otherwise a child selector was supplied. is the current target
+						// one of the activeElements? and is the related target NOT a
+						// descendant of it?
+						for (var i = 0; i < activeElements.length; i++) {
+							if (t == activeElements[i] && !matchesSelector(e.relatedTarget, "*", t)) {
+								t.__tamee.over = false;
+								activeElements.splice(i, 1);
+								meeHelper("mouseexit", e, obj, t);
+							}
+						}
+					}
+				};
+				_bind(obj, "mouseout", _curryChildFilter(children, obj, out, "mouseout"), out);
+				
+			}
+			
+			fn.__taUnstore = function() {
+				delete obj.__tamee[evt][fn.__tauid];
 			};
-			// now register over and out functions (one time only)
-			var over = function(e) {
-				this.__taGenerated = true;
-				var t = e.srcElement || e.target;
-				// if mouseover from some other element (but was filtered by child list, so is a descendant)
-				if (t !== obj && obj.__tamee.over) {
-					t.__tamee = t.__tamee || {};
-					t.__tamee.over = true;
-					obj.__tamee.over = false;
-					meeHelper("mouseexit", e, obj, t);
-				}
-				// otherwise it's a mouseover the current element
-				else if (!obj.__tamee.over) {
-					t.__tamee = t.__tamee || {};
-					t.__tamee.over = true;
-					obj.__tamee.over = true;
-					meeHelper("mouseenter", e, obj, t);
-				}
-			};
 			
-			_bind(obj, "mouseover", _curryChildFilter(children, obj, over, "mouseover"), over, _store);
-			
-			
-			var out = function(e) {
-				this.__taGenerated = true;
-				var t = e.srcElement || e.target;
-				if (t !== obj && obj.__tamee.over) {
-					t.__tamee = t.__tamee || {};
-					t.__tamee.over = false;
-					obj.__tamee.over = false;
-					meeHelper("mouseexit", e, obj);
-				}
-			};
-			_bind(obj, "mouseout", _curryChildFilter(children, obj, out, "mouseout"), out, _store);
-			
-		}
-		
-		fn.__taUnstore = function() {
-			delete obj.__tamee[evt][fn.__tauid];
+			_store(obj, evt, fn);
+			obj.__tamee[evt][fn.__tauid] = fn;
 		};
-		
-		_store(obj, evt, fn);
-		obj.__tamee[evt][fn.__tauid] = fn;
 		
 	};
 
@@ -160,14 +210,14 @@
 		ta_down = "__MottleDown", ta_up = "__MottleUp", 
 		ta_context_down = "__MottleContextDown", ta_context_up = "__MottleContextUp",
 		iev = (function() {
-		        var rv = -1; 
-		        if (navigator.appName == 'Microsoft Internet Explorer') {
-		            var ua = navigator.userAgent,
-		            	re = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
-		            if (re.exec(ua) != null)
-		                rv = parseFloat(RegExp.$1);
-		        }
-		        return rv;
+			var rv = -1; 
+			if (navigator.appName == 'Microsoft Internet Explorer') {
+				var ua = navigator.userAgent,
+					re = new RegExp("MSIE ([0-9]{1,}[\.0-9]{0,})");
+				if (re.exec(ua) != null)
+					rv = parseFloat(RegExp.$1);
+			}
+			return rv;
 		})(),
 		isIELT9 = iev > -1 && iev < 9, 
 		_pageLocation = function(e) {
@@ -190,7 +240,7 @@
 		_touches = function(e) { return e.touches || [ e ]; },
 		_touchCount = function(e) { return _touches(e).length || 1; },
 		//http://www.quirksmode.org/blog/archives/2005/10/_and_the_winner_1.html
-		_bind = function( obj, type, fn, originalFn, _store ) {
+		_bind = function( obj, type, fn, originalFn) {
 			_store(obj, type, fn);
 			originalFn.__tauid = fn.__tauid;
 			if (obj.addEventListener)
@@ -201,7 +251,7 @@
 				obj.attachEvent( "on"+type, obj[type+fn] );
 			}
 		},
-		_unbind = function( obj, type, fn, _unstore ) {
+		_unbind = function( obj, type, fn) {
 			_unstore(obj, type, fn);
 			if (obj.removeEventListener)
 				obj.removeEventListener( type, fn, false );
@@ -216,71 +266,43 @@
 	window.Mottle = function(params) {
 		params = params || {};
 		var self = this, 
-			guid = 1,
+			
 			clickThreshold = params.clickThreshold || 150,
 			dlbClickThreshold = params.dblClickThreshold || 250,
+			mouseEnterExitHandler = new MouseEnterExitHandler(),
 			_smartClicks = params.smartClicks,
-			//
-			// this function generates a guid for every handler, sets it on the handler, then adds
-			// it to the associated object's map of handlers for the given event. this is what enables us 
-			// to unbind all events of some type, or all events (the second of which can be requested by the user, 
-			// but it also used by Mottle when an element is removed.)
-			_store = function(obj, event, fn) {
-				var g = guid++;
-				obj.__ta = obj.__ta || {};
-				obj.__ta[event] = obj.__ta[event] || {};
-				// store each handler with a unique guid.
-				obj.__ta[event][g] = fn;
-				// set the guid on the handler.
-				fn.__tauid = g;
-				return g;
-			},
-			_unstore = function(obj, event, fn, forceRemove) {
-				if (!fn.__taGenerated || forceRemove) {
-					delete obj.__ta[event][fn.__tauid];
-					// a handler might have attached extra functions, so we unbind those too.
-					if (fn.__taExtra) {
-						for (var i = 0; i < fn.__taExtra.length; i++) {
-							_unbind(obj, fn.__taExtra[i][0], fn.__taExtra[i][1], _unstore);
-						}
-						fn.__taExtra.length = 0;
-					}
-					// a handler might have attached an unstore callback
-					fn.__taUnstore && fn.__taUnstore();
-				}
-			},
 			// wrap bind function to provide "smart" click functionality, which prevents click events if
 			// the mouse has moved between up and down.
 			__bind = function(obj, evt, fn, children) {
 				if (_smartClicks && (evt === "click" || evt === "dblclick"))
-					SmartClickHandler(obj, evt, fn, _store, _unstore, children);
+					SmartClickHandler(obj, evt, fn, children);
 				else if (evt === "mouseenter" || evt == "mouseexit")
-					MouseEnterExitHandler(obj, evt, fn, _store, _unstore, children);
+					mouseEnterExitHandler(obj, evt, fn, children);
 				else 
-					DefaultHandler(obj, evt, fn, _store, _unstore, children);
+					DefaultHandler(obj, evt, fn, children);
 			},
 			// TODO MOVE TO A HANDLER
 			_addClickWrapper = function(obj, fn, touchCount, eventIds, supportDoubleClick) {
 				var handler = { down:false, touches:0, originalEvent:null, lastClick:null, timeout:null };
-				var down = function(e) {						
-					var tc = _touchCount(e);					
-					if (tc == touchCount) {				
-						handler.originalEvent = e;	
-						handler.touches = tc;										
-						handler.down = true;							
-						handler.timeout = window.setTimeout(function() {														
+				var down = function(e) {
+					var tc = _touchCount(e);
+					if (tc == touchCount) {
+						handler.originalEvent = e;
+						handler.touches = tc;
+						handler.down = true;
+						handler.timeout = window.setTimeout(function() {
 							handler.down = null;
 						}, clickThreshold);
 					}
 				};
 				fn[eventIds[0]] = down;
 				__bind(obj, touchstart, down);	
-				var up = function(e) {																		
+				var up = function(e) {
 					if (handler.down) {
 						// if supporting double click, check if there is a timestamp for a recent click
 						if (supportDoubleClick) {
 							var t = new Date().getTime();
-							if (handler.lastClick) {							
+							if (handler.lastClick) {
 								if (t - handler.lastClick < dblClickThreshold)
 									fn(handler.originalEvent);
 							}
@@ -338,7 +360,7 @@
 						_unbind(el, evt, el.__ta[evt][h]);
 					}
 				}
-			}			
+			}
 			if (el.parentNode) {
 				el.parentNode.removeChild(el);
 			}
@@ -361,14 +383,8 @@
 				_c = arguments.length == 4 ? arguments[1] : null,
 				_e = arguments[arguments.length - 2],
 				_f = arguments[arguments.length - 1];
-				
-			/*var dlf = _makeDelegateFunction(el, children, fn);
-			this.bind(el, event, dlf);
-			fn.__tauid = dlf.__tauid; // copy the touch adapter guid into the original function. then unbind will work.
-			_delegates[dlf.__tauid] = dlf;*/
-			//this.bind(el, event, fn, children);
+
 			_doBind(_el, _e, _f, _c);
-			
 			return this;
 		};	
 
@@ -401,7 +417,7 @@
 					_unbind(el, touchMap[evt], fn);
 			}
 			
-			_unbind(el, evt, fn, _unstore);
+			_unbind(el, evt, fn);
 
 			return this;
 		};
