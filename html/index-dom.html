@@ -300,9 +300,7 @@ m.on("smartClickDelegation", ".foo,.bar,.baz", "contextmenu", function() { ... }
 				
 				demo("basicEvents", [ "mousemove", "mousedown", "mouseup", "mouseover", "mouseout", "click", "dblclick", ["contextmenu",true] ]);
 				
-				// TODO this is a bug in Mottle: to get smart clicks to work, you have to bind
-				// to mousedown and mouseup. it should do this itself (with a dummy function).
-				demo("smartClick", [ "click", "mousedown", "mouseup" ], function(e, msg, div) {
+				demo("smartClick", [ "click", "mousemove" ], function(e, msg, div) {
 					if (msg !== "click") div.innerHTML = "";
 				}, null, true);
 				

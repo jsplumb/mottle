@@ -29,24 +29,31 @@
 		if (children == null) return fn;
 		else {
 			var c = children.split(",");
-			return function(e) {
-				this.__tauid = fn.__tauid;
+			var _fn = function(e) {
+				_fn.__tauid = fn.__tauid;
 				var t = e.srcElement || e.target;
 				for (var i = 0; i < c.length; i++) {
 					if (matchesSelector(t, c[i], obj)) {
 						fn.apply(t, arguments);
 					}
 				}
-				fn.__taUnstore = function() {
-					_unbind(obj, evt, this);
-				};
 			};
+			registerExtraFunction(fn, evt, _fn);
+			return _fn;
 		}
 	};
 	
+	//
+	// registers an 'extra' function on some event listener function we were given - a function that we
+	// created and bound to the element as part of our housekeeping, and which we want to unbind and remove
+	// whenever the given function is unbound.
+	var registerExtraFunction = function(fn, evt, newFn) {
+		fn.__taExtra = fn.__taExtra || [];
+		fn.__taExtra.push([evt, newFn]);
+	};
+	
 	var DefaultHandler = function(obj, evt, fn, _store, _unstore, children) {
-		_store(obj, evt, fn);
-		_bind(obj, evt, _curryChildFilter(children, obj, fn, evt));
+		_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn, _store);
 	};
 	
 	var SmartClickHandler = function(obj, evt, fn, _store, _unstore, children) {
@@ -72,18 +79,10 @@
 		DefaultHandler(obj, "mouseup", up, _store, _unstore, children);
 		DefaultHandler(obj, "click", click, _store, _unstore, children);
 		
-		_store(obj, evt, fn);
-		
 		// TODO ensure they are not unbound by a general "unbind mousedown or mouseup" call.
-		
-		fn.__taUnstore = function() {
-			_unbind(obj, "mousedown", down);
-			_unstore(obj, "mousedown", down, true);
-			_unbind(obj, "mouseup", up);
-			_unstore(obj, "mouseup", up, true);
-			_unbind(obj, "click", click);
-			_unstore(obj, "click", click, true);
-		};
+		registerExtraFunction(fn, "mousedown", down);
+		registerExtraFunction(fn, "mouseup", up);
+		registerExtraFunction(fn, "click", click);
 	};
 	
 	var TouchEventHandler = function(obj, fn, _store) {
@@ -101,48 +100,50 @@
 			// both mouseenter and mouseexit functions.
 			obj.__tamee = {
 				over:false,
-				mouseenter:{},
-				mouseexit:{}
+				mouseenter:[],
+				mouseexit:[]
 			};
 			// now register over and out functions (one time only)
 			var over = function(e) {
 				this.__taGenerated = true;
 				var t = e.srcElement || e.target;
-				// we have the event target. were children defined?
+				// if mouseover from some other element (but was filtered by child list, so is a descendant)
 				if (t !== obj && obj.__tamee.over) {
-					t.__tamee = t._tamee || {};
-					t.__tamee.over = false;
+					t.__tamee = t.__tamee || {};
+					t.__tamee.over = true;
 					obj.__tamee.over = false;
 					meeHelper("mouseexit", e, obj, t);
 				}
+				// otherwise it's a mouseover the current element
 				else if (!obj.__tamee.over) {
-					t.__tamee = t._tamee || {};
+					t.__tamee = t.__tamee || {};
 					t.__tamee.over = true;
 					obj.__tamee.over = true;
 					meeHelper("mouseenter", e, obj, t);
 				}
 			};
 			
-			_store(obj, "mouseover", over);
-			_bind(obj, "mouseover", _curryChildFilter(children, obj, over, "mouseover"));
+			_bind(obj, "mouseover", _curryChildFilter(children, obj, over, "mouseover"), over, _store);
+			
 			
 			var out = function(e) {
 				this.__taGenerated = true;
 				var t = e.srcElement || e.target;
 				if (t !== obj && obj.__tamee.over) {
-					t.__tamee = t._tamee || {};
+					t.__tamee = t.__tamee || {};
 					t.__tamee.over = false;
 					obj.__tamee.over = false;
 					meeHelper("mouseexit", e, obj);
 				}
 			};
-			_store(obj, "mouseout", out);
-			_bind(obj, "mouseout", _curryChildFilter(children, obj, out, "mouseout"));
+			_bind(obj, "mouseout", _curryChildFilter(children, obj, out, "mouseout"), out, _store);
+			
 		}
 		
 		fn.__taUnstore = function() {
 			delete obj.__tamee[evt][fn.__tauid];
 		};
+		
 		_store(obj, evt, fn);
 		obj.__tamee[evt][fn.__tauid] = fn;
 		
@@ -189,7 +190,9 @@
 		_touches = function(e) { return e.touches || [ e ]; },
 		_touchCount = function(e) { return _touches(e).length || 1; },
 		//http://www.quirksmode.org/blog/archives/2005/10/_and_the_winner_1.html
-		_bind = function( obj, type, fn ) {
+		_bind = function( obj, type, fn, originalFn, _store ) {
+			_store(obj, type, fn);
+			originalFn.__tauid = fn.__tauid;
 			if (obj.addEventListener)
 				obj.addEventListener( type, fn, false );
 			else if (obj.attachEvent) {
@@ -198,7 +201,8 @@
 				obj.attachEvent( "on"+type, obj[type+fn] );
 			}
 		},
-		_unbind = function( obj, type, fn ) {
+		_unbind = function( obj, type, fn, _unstore ) {
+			_unstore(obj, type, fn);
 			if (obj.removeEventListener)
 				obj.removeEventListener( type, fn, false );
 			else if (obj.detachEvent) {
@@ -234,7 +238,14 @@
 			_unstore = function(obj, event, fn, forceRemove) {
 				if (!fn.__taGenerated || forceRemove) {
 					delete obj.__ta[event][fn.__tauid];
-					// a handler might have attached an unstore function, to remove its helper stuff.
+					// a handler might have attached extra functions, so we unbind those too.
+					if (fn.__taExtra) {
+						for (var i = 0; i < fn.__taExtra.length; i++) {
+							_unbind(obj, fn.__taExtra[i][0], fn.__taExtra[i][1], _unstore);
+						}
+						fn.__taExtra.length = 0;
+					}
+					// a handler might have attached an unstore callback
 					fn.__taUnstore && fn.__taUnstore();
 				}
 			},
@@ -312,31 +323,6 @@
 			return self;
 		};
 
-		
-		var _doUnbind = function(obj, evt, fn) {
-			if (isTouchDevice) {
-				if (evt === click) {					
-					_unbind(obj, touchstart, fn[ta_down]);
-					fn[ta_down] = null;
-					_unbind(obj, touchend, fn[ta_up]);
-					fn[ta_up] = null;
-				}
-				else if (evt === contextmenu && wrapContextMenu) {
-					_unbind(obj, touchstart, fn[ta_context_down]);
-					fn[ta_context_down] = null;
-					_unbind(obj, touchend, fn[ta_context_up]);
-					fn[ta_context_up] = null;
-				}
-				else
-					_unbind(obj, touchMap[evt], fn);
-			}
-			
-			_unstore(obj, evt, fn);
-			_unbind(obj, evt, fn);
-
-			return self;
-		};
-
 		/**
 		* @name Mottle#remove
 		* @function
@@ -397,14 +383,25 @@
 		* @param {Function} fn Event handler function.
 		* @returns {Mottle} The current Mottle instance; you can chain this method.
 		*/
-		this.off = function(el, event, fn) {
-			/*var dlf = fn.__tauid ? _delegates[fn.__tauid] : null;
-			if (dlf) {
-				_doUnbind(el, event, dlf);
-				delete _delegates[dlf.__tauid];
+		this.off = function(el, evt, fn) {
+			if (isTouchDevice) {
+				if (evt === click) {
+					_unbind(el, touchstart, fn[ta_down]);
+					fn[ta_down] = null;
+					_unbind(el, touchend, fn[ta_up]);
+					fn[ta_up] = null;
+				}
+				else if (evt === contextmenu && wrapContextMenu) {
+					_unbind(el, touchstart, fn[ta_context_down]);
+					fn[ta_context_down] = null;
+					_unbind(el, touchend, fn[ta_context_up]);
+					fn[ta_context_up] = null;
+				}
+				else
+					_unbind(el, touchMap[evt], fn);
 			}
-			else*/
-				_doUnbind(el, event, fn);
+			
+			_unbind(el, evt, fn, _unstore);
 
 			return this;
 		};
