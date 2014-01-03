@@ -87,30 +87,49 @@
 		_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
 	};
 	
+	var _smartClickHelper = function(obj, evt) {
+		return function(e) {
+			if (obj.__tad && obj.__tau && obj.__tad[0] == obj.__tau[0] && obj.__tad[1] == obj.__tau[1]) {
+				for (var i = 0; i < obj.__taSmartClicks[evt].length; i++)
+					obj.__taSmartClicks[evt][i].apply(e.srcElement || e.target, [ e ]);
+			}
+		}
+	};
+	
 	var SmartClickHandler = function(obj, evt, fn, children) {
-		var down = function(e) {
-				obj.__tad = _pageLocation(e);
-				return true;
-			},
-			up = function(e) {
-				obj.__tau = _pageLocation(e);
-				return true;
-			},
-			click = function(e) {
-				if (obj.__tad && obj.__tau && obj.__tad[0] == obj.__tau[0] && obj.__tad[1] == obj.__tau[1]) {
-					fn.apply((e.srcElement || e.target), [ e ]);
-				}
-			};
+		if (obj.__taSmartClicks == null) {
+			var down = function(e) {
+					obj.__tad = _pageLocation(e);
+					return true;
+				},
+				up = function(e) {
+					obj.__tau = _pageLocation(e);
+					return true;
+				},
+				click = _smartClickHelper(obj, "click"),
+				dblclick = _smartClickHelper(obj, "dblclick")
+				
+			// TODO TOUCH
+			DefaultHandler(obj, "mousedown", down, children);
+			DefaultHandler(obj, "mouseup", up, children);
+			DefaultHandler(obj, "click", click, children);
+			DefaultHandler(obj, "dblclick", dblclick, children);
 			
-		// TODO TOUCH
-		DefaultHandler(obj, "mousedown", down, children);
-		DefaultHandler(obj, "mouseup", up, children);
-		DefaultHandler(obj, "click", click, children);
+			obj.__taSmartClicks = {
+				click:[],
+				dblclick:[]
+			};
+		}
 		
-		// TODO ensure they are not unbound by a general "unbind mousedown or mouseup" call.
-		registerExtraFunction(fn, "mousedown", down);
-		registerExtraFunction(fn, "mouseup", up);
-		registerExtraFunction(fn, "click", click);
+		// store in the list of callbacks
+		obj.__taSmartClicks[evt].push(fn);
+		// stash its index on the function; we will use this to unbind
+		fn.__taSmartClickIndex = obj.__taSmartClicks[evt].length - 1;
+		// the unstore function removes this function from the object's listener list for this type.
+		fn.__taUnstore = function() {
+			obj.__taSmartClicks[evt].splice(fn.__taSmartClickIndex, 1);
+		};
+		
 	};
 	
 	var TouchEventHandler = function(obj, evt, fn, children) {
@@ -162,7 +181,7 @@
 					// is the current target one of the activeElements? and is the 
 					// related target NOT a descendant of it?
 					for (var i = 0; i < activeElements.length; i++) {
-						if (t == activeElements[i] && !matchesSelector(e.relatedTarget, "*", t)) {
+						if (t == activeElements[i] && !matchesSelector((e.relatedTarget || e.toElement), "*", t)) {
 							t.__tamee.over = false;
 							activeElements.splice(i, 1);
 							meeHelper("mouseexit", e, obj, t);
@@ -420,6 +439,7 @@
 		* @returns {Mottle} The current Mottle instance; you can chain this method.
 		*/
 		this.trigger = function(el, event, originalEvent) {
+			el = typeof el === "string" ? document.getElementById(el) : el;
 			var evt;
 			if (document.createEvent) {
 				evt = document.createEvent("MouseEvents");
@@ -441,4 +461,15 @@
 			return this;
 		}
 	};
+	
+	/**
+	* @name Mottle#consume
+	* @desc Static method to assist in 'consuming' an element.
+	*/
+	Mottle.consume = function(e, doNotPreventDefault) {
+		(e.stopPropagation && e.stopPropagation()) || (e.returnValue = false);
+		if (!doNotPreventDefault)
+			e.preventDefault && e.preventDefault();
+	};
+	
 })();
