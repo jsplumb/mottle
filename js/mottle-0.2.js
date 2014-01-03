@@ -278,8 +278,6 @@
 			dlbClickThreshold = params.dblClickThreshold || 250,
 			mouseEnterExitHandler = new MouseEnterExitHandler(),
 			_smartClicks = params.smartClicks,
-			// wrap bind function to provide "smart" click functionality, which prevents click events if
-			// the mouse has moved between up and down.
 			__bind = function(obj, evt, fn, children) {
 				if (_smartClicks && (evt === "click" || evt === "dblclick"))
 					SmartClickHandler(obj, evt, fn, children);
@@ -295,10 +293,12 @@
 				var down = _curryChildFilter(children, obj, function(e) {
 						var tc = _touchCount(e);
 						if (tc == touchCount) {
+							console.log("DOWN!");
 							handler.originalEvent = e;
 							handler.touches = tc;
 							handler.down = true;
 							handler.timeout = window.setTimeout(function() {
+								console.log("TIMEOUT!");
 								handler.down = null;
 							}, clickThreshold);
 						}
@@ -309,6 +309,7 @@
 				//var up = function(e) {
 				var up = _curryChildFilter(children, obj, function(e) {
 					if (handler.down) {
+						console.log("UP!");
 						// if supporting double click, check if there is a timestamp for a recent click
 						if (supportDoubleClick) {
 							var t = new Date().getTime();

@@ -186,7 +186,7 @@ m.on("eventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
 			<h3>Mouseenter/mouseexit</h3>
 			Mouseenter and mousexit are proprietary Internet Explorer events that are kind of useful, and for that reason Mottle offers a wrapper for them in other
 			browsers. The basic concept is that the event only fires when the mouse enters or exits the exact element on which the listener was bound. This differs from
-			the mousemove/mouseout events, which are fired on some element regardless of whether the event occurred on that specific element or one of its descendants.
+			the mouseover/mouseout events, which are fired on some element regardless of whether the event occurred on that specific element or one of its descendants.
 			<p>A listener is bound to the mouseenter and mouseexit events on the element below. A single `mouseenter` event is fired when the mouse first
 			enters the event, and no more events are fired until the mouse exits the bounds of the event, at which time a `mouseexit` event is fired.
 			</p>

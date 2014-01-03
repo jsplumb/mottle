@@ -1,23 +1,85 @@
-#mottle
+# Mottle
 =============
 
-Mottle is a simple wrapper that allows you to register event listeners for mouse events and have those listeners respond to the corresponding touch devices.  Support for `click`/`dblclick`/`contextmenu` is also included. I created this because I wanted a simple way to normalise a UI I was building across desktop and mobile, and I didn't need a mobile framework; just touch events.
+Mottle is a simple event manager that takes care of a few bits and pieces I would often run into during development jsPlumb and the jsPlumb Toolkit. Briefly, its features
+are:
 
-##Browser Support
+- automatic mapping of mouse events to their touch equivalents on touch enabled devices
+- "smart" click handling: not posting a click event if the mouse has moved between mousedown and mouseup
+- simulation of click/dblclick/contextmenu events for touch devices
+- event delegation
+- mouseenter and mouseexit event support
+- event triggering
+
+### Browser Support
 
 Currently, all desktop browsers and iOS devices are supported.  Support for Android will be coming shortly.
 
-##Requirements
+#### Basic Events
 
-#### 0.1
+The following events can be bound, using the `on` function:
 
-Version 0.1 of Mottle runs either stand alone (requiring no external library), or it can run on top of jQuery - which is to say that it maps to jQuery's event binding methods.  It was originally my intention to create other library wrappers, but I haven't yet got around to it. And, for reasons discussed in the 0.2 requirements section below, it is not likely I will get around to it.
+- mousedown
+- mouseup
+- mousemove
+- click
+- dblclick
+- mouseover
+- mouseout
+- contextmenu
 
-#### 0.2
 
-Version 0.2 has abandoned integration with an external library, for various reasons (all of which, I can assure you, are excellent).
+```javascript
+var m = new Mottle();
+m.on("someElementId", "click", function(e) { ... });
+m.on(someElement, "mouseout", function(e) { ... });
+```
 
-##Event Mapping
+#### Smart clicks
+
+The smart click handler provides `click` and `dblclick` events that are not fired if the mouse has moved between `mousedown` and `mouseup` (the default 
+browser functionality is to fire a click even if the mouse has moved). This handler works by registering a single `mousedown`, `mouseup` and `click` 
+event handler on any element for which a smart click (or dblclick) event has been registered.  The down and up handlers store the mouse position. The 
+click handler checks to see if these two positions are identical, and if they are, the event is fired. The handler maintains a list of click listeners 
+and a separate list of dblclick listeners, and whenever a click or dblclick should be fired, these lists are iterated and each function in them is fired 
+one by one. Of course if you register a click or dblclick on some element that has already been configured for smart clicks, the handler is just added directly
+to the appropriate existing list, at which time its index in the list is stored as the `__taSmartClickIndex` property on the function itself.  
+Then, if the user unbinds the given function, we have a hook to remove it from the list, which prevents memory leaks.
+
+To enable smart clicks, you set it on Mottle's constructor:
+
+```javascript
+var m = new Mottle({ smartClicks:true });
+m.on("someElementId", "click", function(e) { ... });
+```
+
+#### Synthesized mouseenter/mouseexit
+
+Mouseenter and mousexit are proprietary Internet Explorer events that are kind of useful, and for that reason Mottle offers a wrapper for them in other
+browsers. The basic concept is that the event only fires when the mouse enters or exits the exact element on which the listener was 
+bound. This differs from the `mouseover`/`mouseout` events, which are fired on some element regardless of whether the event occurred on 
+that specific element or on one of its descendants. For this, a `mouseout` and a `mouseover` listener are registered on
+the element on which you wish to bind to `mouseenter`/`mouseexit`.  Then, an object is set on the element that contains a flag indicating 
+whether the mouse is currently over the element, along with a list of `mouseenter` and `mouseexit` listeners. When a `mouseover` event is fired - remember 
+they are fired by the element and all of its descendants - the target is checked. If it is the element itself and the `over` flag is not set, then a 
+`mouseenter` has occurred, and all the `mouseenter` listeners are fired. A complication with this simple explanation is that these handlers work with event 
+delegation - so in fact at any point in time there may be multiple elements on which the mouse is considered to have entered. but you needn't worry about that.  
+To determine `mouseexit`, we test, in the `mouseout` listener, whether the event target is one of the elements that mouse is currently over, and if so, whether 
+the "related target" (the element to which the mouse has gone) is NOT a descendant of that element. If both of these conditions are true then we have a `mouseexit`.
+
+#### Synthesized click/dblclick/contextmenu
+
+Mottle offers synthesized `click`, `dblclick` and `contextmenu` events for touch devices. These work by adding a `touchstart`
+and `touchend` listener to the element. On `touchstart`, a timer is started. If the timer finishes before `touchend`, then no 
+event is fired. If the `touchend` event occurs before the timer finishes, then an event is fired.
+
+#### Touch Event Mapping
+
+On touch devices, Mottle maps mouse events to their touch equivalents, allowing you to bind to `mousedown`, `mouseup`
+and `mousemove` in your code and be confident it will still work on a touch device. This is achieved through a simple mapping of 
+event name: when you register a `mousedown` listener, it is actually bound as a `touchstart`, for example. There are some devices on the 
+market that are both touch and mouse devices; for those, the event listener is simply bound to both the mouse event you asked for, and 
+its touch equivalent.
 
 The three basic touch events are mapped in this way:
 
@@ -25,11 +87,12 @@ The three basic touch events are mapped in this way:
 - __touchend__ -> __mouseup__
 - __touchmove__ -> __mousemove__
 
-In addition,TouchAdapter supports `click`, `dblclick` and `contextmenu`, by starting a timer on touchstart and then checking if the touchend event happens within a certain threshold afterwards.  For the `contextmenu` event, touch-adapter looks for a touchstart+touchend using two fingers (this is one way you can do a right-click on the Mac's trackpad).
 
-##Smart click handling (0.2 only)
+##Event Mapping
 
-By default, all browsers consider a `mouseup` event on some element on which there was recently a `mousedown` to be sufficient cause to fire a `click` event.  If the mouse has moved between `mousedown` and `mouseup`, though, for many applications it is absolutely not the case that the two events should be considered a `click`. So you can pass a parameter to the TouchAdapter constructor to tell it that `click` should only be fired if the mouse has not moved between `mousedown` and `mouseup`.
+
+In addition,Mottle supports `click`, `dblclick` and `contextmenu`, by starting a timer on touchstart and then checking if the touchend event happens within a certain threshold afterwards.  For the `contextmenu` event, touch-adapter looks for a touchstart+touchend using two fingers (this is one way you can do a right-click on the Mac's trackpad).
+
 
 ##Usage
 
@@ -70,70 +133,6 @@ Note that the `off` function does not take a list of selectors as argument. It r
 
 ---
 
-### 0.1
-
-###Standalone
-
-First create one:
-
-	var mottle = new Mottle();
-
-..and you make calls to `bind` and `unbind`:
-
-	mottle.bind(someElement, "click", aFunction);
-	mottle.unbind(someOtherElement, "dblclick", anotherFunction);
-
-Note that `bind` and `unbind` are chainable:
-
-	mottle.bind(someElement, "click", aFunction).unbind(someOtherElement, "dblclick", anotherFunction);
-
-Your event callbacks, when using the standalone Mottle, will be passed native browser events.
-
-Mottle's constructor can take a params object, with five possible values (all are optional):
-
-- __bind__ a function to use for binding event listeners. if this is not provided, touch-adapter uses its own default method.
-- __unbind__ a function to use for unbinding event listeners. Same deal as for bind if not provided.
-- __unwrap__ a function to use for unwrapping an event to its original event. Not required if you are using native DOM events, but the library specific subclasses of touch-adapter all provide an unwrap function.
-- __clickThreshold__ number of milliseconds within which the user must release a touch in order for us to register a click. Defaults to 150.
-- __doubleClickThreshold__ number of milliseconds within which two consecutive clicks must be registered in order for us to register a double click. Defaults to 250.
-
-###jQuery
-
-The jQuery Mottle can be used either as a JS object that you instantiate, but it also registers itself as a plugin.
-
-####jQuery Standalone
-
-Using the jQuery Mottle standalone is a lot like using the native standalone version:
-
-	var mottle = new jQueryMottle();
-
-..and you then make calls to `bind` and `unbind`:
-
-	mottle.bind(someElement, "click", aFunction);
-	mottle.unbind(someOtherElement, "dblclick", anotherFunction);
-
-(when I say a lot like it, I mean __the same__).  The only difference is that your callbacks will be passed jQuery event objects.
-
-####jQuery Plugin
-
-For lovers of selector soup, Mottle registers two handy methods on the jQuery function object:
-
-	$("#someElement").taBind("click", someFunction);
-	$("#someElement").taUnbind("dblclick", someOtherFunction);
-
-These are, of course, chainable:
-
-	$("#someElement").taBind("click", someFunction).taBind("dblclick", someOtherFunction);
-
-What about `delegate`, `live` and `on` ?  I'll add these if someone asks for them.  Seems like they would be a nice to have.
-
-###MooTools
-
-Coming shortly.
-
-###YUI3
-
-Thinking about doing this too. But YUI3 seems to have pretty decent touch event support already.
 
 
 
