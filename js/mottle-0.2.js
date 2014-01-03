@@ -203,9 +203,6 @@
 
 	var isTouchDevice = "ontouchstart" in document.documentElement,
 		isMouseDevice = "onmousedown" in document.documentElement,
-		downEvent = isTouchDevice ? "touchstart" : "mousedown",
-		upEvent = isTouchDevice ? "touchend" : "mouseup",
-		moveEvent = isTouchDevice ? "touchmove" : "mousemove",
 		touchMap = { "mousedown":"touchstart", "mouseup":"touchend", "mousemove":"touchmove" },
 		click="click", dblclick="dblclick",contextmenu="contextmenu",
 		touchstart="touchstart",touchend="touchend",touchmove="touchmove",
@@ -248,19 +245,27 @@
 			if (obj.addEventListener)
 				obj.addEventListener( type, fn, false );
 			else if (obj.attachEvent) {
-				obj["e"+type+fn] = fn;
-				obj[type+fn] = function() { obj["e"+type+fn]( window.event ); }
-				obj.attachEvent( "on"+type, obj[type+fn] );
+				
+				var key = type + fn.__tauid;
+				obj["e" + key] = fn;
+				// TODO look at replacing with .call(..)
+				obj[key] = function() { obj["e"+key]( window.event ); }
+				obj.attachEvent( "on"+type, obj[key] );
 			}
 		},
 		_unbind = function( obj, type, fn) {
+			// it has been bound if there is a tauid. otherwise it was not bound and we
+			// can ignore it.
 			_unstore(obj, type, fn);
-			if (obj.removeEventListener)
-				obj.removeEventListener( type, fn, false );
-			else if (obj.detachEvent) {
-				obj.detachEvent( "on"+type, obj[type+fn] );
-				obj[type+fn] = null;
-				obj["e"+type+fn] = null;
+			if (fn.__tauid != null) {
+				if (obj.removeEventListener)
+					obj.removeEventListener( type, fn, false );
+				else if (obj.detachEvent) {
+					var key = type + fn.__tauid;
+					obj[key] && obj.detachEvent( "on"+type, obj[key] );
+					obj[key] = null;
+					obj["e"+key] = null;
+				}
 			}
 		},
 		_devNull = function() {};

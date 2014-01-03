@@ -1,17 +1,366 @@
 <!doctype html>
 <html>
 <head>
-<script type="text/javascript" src="https://getfirebug.com/firebug-lite.js#startOpened=true"></script>
+
+<style>
+.foo, .baz, .bar { 
+	margin-top:150px;
+	width:50px; 
+	height:50px; 
+	border:2px solid green;
+	display:inline-block;
+	margin-left:25px;
+}
+
+body {
+	text-align:center;
+	font-family:Verdana, sans-serif;
+	font-size:12px;
+}
+.content {
+	text-align:left;
+	margin-left:auto;
+	margin-right:auto;
+	width:800px;
+}
+
+.demo {
+	height:400px;
+	border-top:1px solid black;
+	border-left:1px solid black;
+	border-right:1px solid black;
+	position:relative;
+}
+
+.unbound:before {
+	content:"My events have been unbound.";
+}
+
+.unbound {
+	line-height:400px;
+	text-align:center;
+	font-size:20px;
+}
+
+.debug {
+	color:orange;
+	position:absolute;
+	background-color:WhiteSmoke;
+	top:0;
+	left:0;
+	height:40px;
+	line-height:40px;
+	width:100%;
+	text-align:center;
+}
+.unbind {
+	position:absolute;
+	right:0;
+	bottom:0;
+}
+
+.inner {
+	left:150px;
+	top:150px;
+	border:1px solid black;
+	position:absolute; 
+	width:250px;
+	height:150px;
+	line-height:150px;
+	text-align:center;
+}
+
+.code {
+	border-bottom:1px solid black;
+	border-left:1px solid black;
+	border-right:1px solid black;
+	background-color:WhiteSmoke;
+	margin-top: -11px;
+}
+
+pre {
+	font-family:"Courier New", monospace;
+	font-size:11px;
+	color:#456;
+	padding:7px;
+}
+
+.trigger {
+	position:absolute;
+	right: 103px;
+	bottom: 0px;
+}
+
+</style>
 </head>
 	<body>
-		<ul>
-			<li><a href="html/index-dom.html">DOM ONLY</a></li>
-			<li><a href="html/index-dom-smart-click.html">DOM with "smart" click handling</a></li>
-			<li><a href="html/index-jquery-1_7_plus.html">jQuery 1.7+, without plugin</a></li>
-			<li><a href="html/index-jquery-1_7_minus.html">jQuery &lt; 1.7, without plugin</a></li>
-			<li><a href="html/index-jquery-plugin.html">jQuery Plugin</a></li>
-			<li></li>
-			<li><a href="test/index.html">TESTS</a></li>
-		</ul>		
+		<div class="content">
+			<a href="../index.html"> <- back to index</a>
+			<h2>Mottle</h2>
+			<p>
+				Mottle is a lightweight browser event manager. It was originally written to support jsPlumb 1.6.0, but is independent of jsPlumb and may be useful for other
+				projects.  Its main features are:
+				<ul>
+					<li>automatic mapping of mouse events to their touch equivalents on touch enabled devices</li>
+					<li>"smart" click handling: not posting a click event if the mouse has moved between mousedown and mouseup</li>
+					<li>simulation of click/dblclick events for touch devices</li>
+					<li>event delegation</li>
+					<li>mouseenter and mouseexit event support</li>
+					<li>event triggering</li>
+				</ul>
+			</p>
+			<p>
+				Mottle has no external dependencies and works with all desktop browsers from IE6 up, as well as mobile browsers on Apple and Android devices.
+			</p>
+			<hr />
+			<h3>Basic Events</h3>
+			<p>
+				This element uses Mottle to register listeners for `mousedown`, `mouseup`, `click`, `dblclick`, `mousemove`, `mouseover`, `mouseout` and `contextmenu`. Note that you won't 
+				see any `mouseup` events appearing in the debug pane when you left-click, as the `click` event is fired immediately thereafter. If you right-click, though,
+				you will first see a `contextmenu` event, followed by a `mouseup` event.
+			</p>
+			<p>Note also in this element if you press the mouse button, then move the mouse before releasing
+			the button, a `click` event is posted. This is the default behaviour of all browsers, but can be
+			suppressed using Mottle's "smartClick" functionality - see below.
+			</p>
+			<p>Click 'Unbind Events' to do what the name suggests.</p>
+			
+			
+			<div id="basicEvents" class="demo">
+				<div class="debug"></div>
+				<button class="unbind">Unbind Events</button>
+			</div>
+			<div class="code">
+<pre>
+var m = new Mottle();
+m.on("basicEvents", "mousedown", function() { ... });
+m.on("basicEvents", "mouseup", function() { ... });
+m.on("basicEvents", "click", function() { ... });
+m.on("basicEvents", "dblclick", function() { ... });
+m.on("basicEvents", "mousemove", function() { ... });
+m.on("basicEvents", "mouseover", function() { ... });
+m.on("basicEvents", "mouseout", function() { ... });
+m.on("basicEvents", "contextmenu", function() { ... });
+</pre>
+			</div>
+
+			<h3>Smart Clicks</h3>
+			In this demo, we are using the "smart click" functionality to suppress click events if the
+			user's mouse has moved between the `mousedown` and `mouseup` events.
+			<div class="demo" id="smartClick">
+				<div class="debug"></div>
+				<button class="unbind">Unbind Events</button>
+			</div>
+			<div class="code">
+<pre>
+var m = new Mottle({ smartClicks:true });
+m.on("smartClick", "click", function() { ... });
+</pre>
+			</div>
+			
+			<h3>Event Delegation</h3>
+			As well as basic event handler binding, Mottle offers event delegation - the ability to bind a listener to some parent element and associate that listener with
+			a selector that identifies appropriate descendants of the element to which to respond.
+			<p>
+				The element is configured to use Mottle's event delegation to bind the `click` and `contextmenu` events to the
+				element's children.
+			</p>
+	
+			<div id="eventDelegation" class="demo">
+				<div class="foo">1</div>
+				<div class="foo">2</div>
+				<div class="baz">3</div>
+				<div class="bar">4</div>
+				<div class="foo">5</div>
+				<div class="debug"></div>
+				<button class="unbind">Unbind Events</button>
+			</div>
+			<div class="code">
+<pre>
+var m = new Mottle();
+m.on("eventDelegation", ".foo,.baz,.bar", "click", function() { ... });
+m.on("eventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
+</pre>
+			</div>
+			
+			<h3>Mouseenter/mouseexit</h3>
+			Mouseenter and mousexit are proprietary Internet Explorer events that are kind of useful, and for that reason Mottle offers a wrapper for them in other
+			browsers. The basic concept is that the event only fires when the mouse enters or exits the exact element on which the listener was bound. This differs from
+			the mousemove/mouseout events, which are fired on some element regardless of whether the event occurred on that specific element or one of its descendants.
+			<p>A listener is bound to the mouseenter and mouseexit events on the element below. A single `mouseenter` event is fired when the mouse first
+			enters the event, and no more events are fired until the mouse exits the bounds of the event, at which time a `mouseexit` event is fired.
+			</p>
+			<p><strong>Note:</strong> this doesn't do anything on touch devices - there is no related concept.</p>
+			<div id="mouseEnterExit" class="demo">
+				<div class="inner">INNER</div>
+				<div class="debug"></div>
+				<button class="unbind">Unbind Events</button>
+			</div>
+			<div class="code">
+<pre>
+var m = new Mottle();
+m.on("mouseEnterExit", "mouseenter", function() { ... });
+m.on("mouseEnterExit", "mouseexit", function() { ... });
+</pre>
+			</div>
+			
+			<h3>Event Delegation + Mouseenter/mouseexit</h3>
+			Here we are mixing the `mouseenter` and `mouseexit` event wrappers with event delegation: the element
+			is registered as the delegate for the `mouseenter` and `mouseexit` events from the child elements inside.
+			<p><strong>Note:</strong> this doesn't do anything on touch devices - there is no related concept.</p>
+			<div id="mouseEnterExitDelegation" class="demo">
+				<div class="foo">1</div>
+				<div class="foo">2</div>
+				<div class="baz">3</div>
+				<div class="bar">4</div>
+				<div class="foo">5</div>
+				<div class="debug"></div>
+				<button class="unbind">Unbind Events</button>
+			</div>
+			<div class="code">
+<pre>
+var m = new Mottle();
+m.on("mouseEnterExitDelegation", ".foo,.bar,.baz", "mouseenter", function() { ... });
+m.on("mouseEnterExitDelegation", ".foo,.bar,.baz", "mouseexit", function() { ... });
+</pre>
+			</div>
+			
+			<h3>Event Delegation + Smart Clicks</h3>
+			Here we are mixing the smart click functionality with event delegation: the element
+			is registered as the delegate for the `click` and `contextmenu` events from the child 
+			elements inside. 
+			<div id="smartClickDelegation" class="demo">
+				<div class="foo">1</div>
+				<div class="foo">2</div>
+				<div class="baz">3</div>
+				<div class="bar">4</div>
+				<div class="foo">5</div>
+				<div class="debug"></div>
+				<button class="unbind">Unbind Events</button>
+			</div>
+			<div class="code">
+<pre>
+var m = new Mottle({smartClicks:true});
+m.on("smartClickDelegation", ".foo,.bar,.baz", "click", function() { ... });
+m.on("smartClickDelegation", ".foo,.bar,.baz", "contextmenu", function() { ... });
+</pre>
+			</div>
+			
+			<h3>Event Triggering</h3>
+			We register a `dblclick` listener on the main element. When you press the Trigger button, a `dblclick` event is triggered. Click
+			on the element itself to clear the message.
+			<div id="triggering" class="demo">				
+				<div class="debug"></div>
+				<button class="trigger">Trigger</button>
+				<button class="unbind">Unbind Events</button>
+			</div>
+			<div class="code">
+<pre>
+var m = new Mottle();
+m.on("triggering", "dblclick", function() { ...write the message... });
+m.on("triggering", "click", function() { ...clear the message... });
+m.on("triggering", "button.trigger", "click", function(e) {
+	m.trigger("triggering", "dblclick", e);
+});
+</pre>
+			</div>
+
+			
+		</div>
+		
+		<script src="js/mottle-0.2.js"></script>
+
+		<script>
+			document.body.onload = function() {
+				
+				//
+				// create a listener. 
+				// msg - the message to display
+				// debug - the debug div to write the message into
+				// fn - optional function to call on event fired
+				// consume - whether or not to consume the event.
+				//
+				var d = function(msg, debug, fn, consume) {
+					return function(e) {
+						if (consume) {
+							Mottle.consume(e);
+						}				
+						debug.innerHTML = msg;
+						//if (typeof console != "undefined") console.log(e);
+						fn && fn(e, msg, debug);
+					};
+				};
+				
+				//
+				// a single demo instance.
+				// takes an array of event names, or optionally of [ eventName, consume ] pairs (or a mix),
+				// and binds them to the given element.
+				var demo = function(elId, events, fn, spec, smartClicks) {
+					var m = new Mottle({smartClicks:smartClicks}),
+						el = document.getElementById(elId),
+						dbug = el.querySelectorAll(".debug")[0],
+						ub = el.querySelectorAll(".unbind")[0],
+						listeners = [];
+						
+					// attach event listeners
+					for (var i = 0; i < events.length; i++) {
+						var e = typeof events[i] == "string" ? events[i] : events[i][0],
+							c = typeof events[i] == "string" ? false : events[i][1];
+							
+						var l = d(e, dbug, fn, c);
+						listeners.push([e, l]);
+						var args = [ el, spec, e, l ];
+						m.on.apply(m, args);
+					}
+					
+					// attach listener to unbind button
+					m.on(ub, "click", function(e) {
+						dbug.innerHTML = "";
+						for (var i = 0; i < listeners.length; i++) {
+							m.off(el, listeners[i][0], listeners[i][1]);
+						}
+						Mottle.consume(e);
+						el.className = el.className + " unbound";
+					});
+					
+					return m;
+				};
+				
+				demo("basicEvents", [ "mousemove", "mousedown", "mouseup", "mouseover", "mouseout", "click", "dblclick", ["contextmenu",true] ]);
+				
+				demo("smartClick", [ "click", "mousemove", "dblclick" ], function(e, msg, div) {
+					if (msg == "mousemove") div.innerHTML = "";
+				}, null, true);
+				
+				demo("eventDelegation", [ "click", ["contextmenu", true] ], function(e, msg, div) { 
+					div.innerHTML = msg + " [source:" + e.srcElement.innerHTML + "]";
+				}, ".foo,.baz,.bar");
+				
+				demo("mouseEnterExit", [ "mouseenter", "mouseexit" ]);
+				
+				demo("mouseEnterExitDelegation", [ "mouseenter", "mouseexit" ], function(e, msg, div) { 
+					div.innerHTML = msg + " [source:" + e.srcElement.innerHTML + "]";
+				}, ".foo,.baz,.bar");
+				
+				demo("smartClickDelegation", ["click", ["contextmenu", true ]], function(e, msg, div) {
+					if (msg !== "click" && msg !== "contextmenu") 
+						div.innerHTML = "";
+					else
+						div.innerHTML = msg + " [source:" + e.srcElement.innerHTML + "]";
+				}, ".foo,.bar,.baz", true);
+				
+				var mottle = demo("triggering", ["click", "dblclick"], function(e, msg, div) {
+					if (msg == "dblclick")
+						div.innerHTML = "Double Click!";
+					else
+						div.innerHTML = "";
+				});
+				mottle.on("triggering", "button.trigger", "click", function(e) {
+					mottle.trigger("triggering", "dblclick", e);
+				});
+
+			};
+		</script>
+
 	</body>
 </html>
