@@ -6,7 +6,8 @@ are:
 
 - automatic mapping of mouse events to their touch equivalents on touch enabled devices
 - "smart" click handling: not posting a click event if the mouse has moved between mousedown and mouseup
-- simulation of click/dblclick/contextmenu events for touch devices
+- simulation of contextmenu events for touch devices
+- tap/dbltap events (touch and mouse devices)
 - event delegation
 - mouseenter and mouseexit event support
 - event triggering
@@ -27,6 +28,10 @@ The following events can be bound, using the `on` function:
 - mouseover
 - mouseout
 - contextmenu
+- tap
+- dbltap
+- mouseenter
+- mouseexit
 
 
 ```javascript
@@ -67,11 +72,14 @@ delegation - so in fact at any point in time there may be multiple elements on w
 To determine `mouseexit`, we test, in the `mouseout` listener, whether the event target is one of the elements that mouse is currently over, and if so, whether 
 the "related target" (the element to which the mouse has gone) is NOT a descendant of that element. If both of these conditions are true then we have a `mouseexit`.
 
-#### Synthesized click/dblclick/contextmenu
+#### "Tap" events
 
-Mottle offers synthesized `click`, `dblclick` and `contextmenu` events for touch devices. These work by adding a `touchstart`
-and `touchend` listener to the element. On `touchstart`, a timer is started. If the timer finishes before `touchend`, then no 
-event is fired. If the `touchend` event occurs before the timer finishes, then an event is fired.
+On mobile devices it can take a while for a `click` event to fire, and there is no `contextmenu` event. Mottle provides a synthesized version of `click` - `tap`, which
+works by starting a timer on `touchstart` and then firing the `tap` event if `touchend` occurs before the timer stops. Support for `dbltap` is also included, as is
+support for a synthesized `contextmenu` event (for which Mottle looks for a touchstart+touchend combination using two fingers).
+
+Given that the `tap` and `dbltap` events fallback to standard clicks on a mouse controlled device, it makes sense to bind to `tap` where you may have 
+historically bound to `click`.
 
 #### Touch Event Mapping
 
@@ -88,19 +96,13 @@ The three basic touch events are mapped in this way:
 - __touchmove__ -> __mousemove__
 
 
-##Event Mapping
-
-
-In addition,Mottle supports `click`, `dblclick` and `contextmenu`, by starting a timer on touchstart and then checking if the touchend event happens within a certain threshold afterwards.  For the `contextmenu` event, touch-adapter looks for a touchstart+touchend using two fingers (this is one way you can do a right-click on the Mac's trackpad).
-
-
 ##Usage
 
 ### 0.2
 
 #### Constructor
 
-	var mottle = new Mottle(PARAMS);
+	var mottle = new Mottle( { OPTIONAL PARAMS } );
 
 Allowed constructor parameters are:
 
@@ -112,22 +114,22 @@ Allowed constructor parameters are:
 
 To directly bind an event handler on some element, use `bind`:
 
-	mottle.bind(someElement, "click", aFunction);
-	mottle.bind(someElement, "dblclick", anotherFunction);	
+	mottle.on(someElementOrId, "click", aFunction);
+	mottle.on(someElementOrId, "dblclick", anotherFunction);	
 
-To subsequently unbind, use `unbind`. Note you have to supply the original function:
+To subsequently unbind, use `off`. Note you have to supply the original function:
 
-	mottle.unbind(someOtherElement, "dblclick", anotherFunction);
+	mottle.off(someOtherElementOrId, "dblclick", anotherFunction);
 
 #### Event Delegation
 
-To have some element act as an event handling delegate for some set of its child elements, use `on`:
+To have some element act as an event handling delegate for some set of its child elements, provide a child selector as the second argument to `on`:
 
-	mottle.on(someElement, "div.foo, div.bar", "click", aFunction);
+	mottle.on(someElementOrId, "div.foo, div.bar", "click", aFunction);
 
-To remove the event delegation, use `off`:
+To remove the event delegation, again use `off`:
 
-	mottle.off(someElement, "click", aFunction);
+	mottle.off(someElementOrId, "click", aFunction);
 
 Note that the `off` function does not take a list of selectors as argument. It removes all event delegation for the set of child selectors with which the given function was registered.
 
