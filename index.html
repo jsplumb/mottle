@@ -374,11 +374,11 @@ m.on("triggering", "button.trigger", "click", function(e) {
 				demo("basicEvents", [ "mousemove", "mousedown", "mouseup", "mouseover", "mouseout", "click", "dblclick", ["contextmenu",true] ]);
 				
 				demo("tapEvents", [ ["contextmenu",true], "tap", "dbltap", "mousemove" ], function(e, msg, div) {
-					if (msg == "mousemove") div.innerHTML = "";
+					div.innerHTML = (msg == "mousemove")  ? "" : msg;
 				});
 				//*/
 				demo("smartClick", [ "click", "mousemove", "dblclick" ], function(e, msg, div) {
-					if (msg == "mousemove") div.innerHTML = "";
+					div.innerHTML = (msg == "mousemove")  ? "" : msg;
 				}, null, true);
 				
 				demo("eventDelegation", [ "click", ["contextmenu", true] ], function(e, msg, div) { 
