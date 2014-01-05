@@ -328,10 +328,11 @@ m.on("triggering", "button.trigger", "click", function(e) {
 					return function(e) {
 						if (consume) {
 							Mottle.consume(e);
-						}				
-						debug.innerHTML = msg;
-						//if (typeof console != "undefined") console.log(e);
-						fn && fn(e, msg, debug);
+						}
+						if (fn)
+							fn(e, msg, debug);
+						else
+							debug.innerHTML = msg;
 					};
 				};
 				
@@ -401,11 +402,9 @@ m.on("triggering", "button.trigger", "click", function(e) {
 						div.innerHTML = msg + " [source:" + e.srcElement.innerHTML + "]";
 				}, ".foo,.bar,.baz", true);
 				
-				var mottle = demo("triggering", ["click", "dblclick"], function(e, msg, div) {
+				var mottle = demo("triggering", ["dblclick", "click"], function(e, msg, div) {
 					if (msg == "dblclick")
 						div.innerHTML = "Double Click!";
-					else
-						div.innerHTML = "";
 				});
 				mottle.on("triggering", "button.trigger", "click", function(e) {
 					mottle.trigger("triggering", "dblclick", e);
