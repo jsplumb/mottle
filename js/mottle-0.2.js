@@ -281,7 +281,7 @@
 		},
 		_devNull = function() {},
 		_each = function(obj, fn) {
-			obj = obj.length != null ? obj : [ obj ];
+			obj = obj.tagName == null && obj.length != null ? obj : [ obj ];
 			for (var i = 0; i < obj.length; i++)
 				fn.apply(obj[i]);
 		};
