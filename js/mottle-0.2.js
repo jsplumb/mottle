@@ -264,20 +264,27 @@
 			}
 		},
 		_unbind = function( obj, type, fn) {
-			_unstore(obj, type, fn);
-			// it has been bound if there is a tauid. otherwise it was not bound and we can ignore it.
-			if (fn.__tauid != null) {
-				if (obj.removeEventListener)
-					obj.removeEventListener( type, fn, false );
-				else if (obj.detachEvent) {
-					var key = type + fn.__tauid;
-					obj[key] && obj.detachEvent( "on"+type, obj[key] );
-					obj[key] = null;
-					obj["e"+key] = null;
+			_each(obj, function() {
+				_unstore(this, type, fn);
+				// it has been bound if there is a tauid. otherwise it was not bound and we can ignore it.
+				if (fn.__tauid != null) {
+					if (this.removeEventListener)
+						this.removeEventListener( type, fn, false );
+					else if (this.detachEvent) {
+						var key = type + fn.__tauid;
+						this[key] && this.detachEvent( "on"+type, this[key] );
+						this[key] = null;
+						this["e"+key] = null;
+					}
 				}
-			}
+			});
 		},
-		_devNull = function() {};
+		_devNull = function() {},
+		_each = function(obj, fn) {
+			obj = obj.length != null ? obj : [ obj ];
+			for (var i = 0; i < obj.length; i++)
+				fn.apply(obj[i]);
+		};
 
 	this.Mottle = function(params) {
 		params = params || {};
@@ -288,15 +295,17 @@
 			tapHandler = new TapHandler(clickThreshold, dblClickThreshold),
 			_smartClicks = params.smartClicks,
 			_doBind = function(obj, evt, fn, children) {
-				if (_smartClicks && evt === "click")
-					SmartClickHandler(obj, evt, fn, children);
-				else if (evt === "tap" || evt === "dbltap" || evt === "contextmenu") {
-					tapHandler(obj, evt, fn, children);
-				}
-				else if (evt === "mouseenter" || evt == "mouseexit")
-					mouseEnterExitHandler(obj, evt, fn, children);
-				else 
-					DefaultHandler(obj, evt, fn, children);
+				_each(obj, function() {
+					if (_smartClicks && evt === "click")
+						SmartClickHandler(this, evt, fn, children);
+					else if (evt === "tap" || evt === "dbltap" || evt === "contextmenu") {
+						tapHandler(this, evt, fn, children);
+					}
+					else if (evt === "mouseenter" || evt == "mouseexit")
+						mouseEnterExitHandler(this, evt, fn, children);
+					else 
+						DefaultHandler(this, evt, fn, children);
+				});
 			};
 
 		/**
@@ -308,15 +317,18 @@
 		* @returns {Mottle} The current Mottle instance; you can chain this method.
 		*/
 		this.remove = function(el) {
-			el = _gel(el);
-			if (el.__ta) {
-				for (var evt in el.__ta) {
-					for (var h in el.__ta[evt]) {
-						_unbind(el, evt, el.__ta[evt][h]);
+			_each(el, function() {
+				var _el = _gel(this);
+				if (_el.__ta) {
+					for (var evt in _el.__ta) {
+						for (var h in _el.__ta[evt]) {
+							_unbind(_el, evt, _el.__ta[evt][h]);
+						}
 					}
 				}
-			}
-			el.parentNode && el.parentNode.removeChild(el);
+				_el.parentNode && _el.parentNode.removeChild(_el);
+			});
+			
 			return this;
 		};
 
@@ -369,25 +381,26 @@
 		* @returns {Mottle} The current Mottle instance; you can chain this method.
 		*/
 		this.trigger = function(el, event, originalEvent) {
-			el = _gel(el);
-			var evt;
-			if (document.createEvent) {
-				evt = document.createEvent("MouseEvents");
-				evt.initMouseEvent(event, true, true, window, 0,
-								   originalEvent.screenX, originalEvent.screenY,
-								   originalEvent.clientX, originalEvent.clientY,
-								   false, false, false, false, 1, null);
-				el.dispatchEvent(evt);
-			}
-			else if (document.createEventObject) {
-				evt = document.createEventObject();
-				evt.eventType = evt.eventName = event;
-				evt.screenX = originalEvent.screenX;
-				evt.screenY = originalEvent.screenY;
-				evt.clientX = originalEvent.clientX;
-				evt.clientY = originalEvent.clientY;
-				el.fireEvent('on' + event, evt);
-			}
+			_each(el, function() {
+				var _el = _gel(this), evt;
+				if (document.createEvent) {
+					evt = document.createEvent("MouseEvents");
+					evt.initMouseEvent(event, true, true, window, 0,
+									   originalEvent.screenX, originalEvent.screenY,
+									   originalEvent.clientX, originalEvent.clientY,
+									   false, false, false, false, 1, null);
+					_el.dispatchEvent(evt);
+				}
+				else if (document.createEventObject) {
+					evt = document.createEventObject();
+					evt.eventType = evt.eventName = event;
+					evt.screenX = originalEvent.screenX;
+					evt.screenY = originalEvent.screenY;
+					evt.clientX = originalEvent.clientX;
+					evt.clientY = originalEvent.clientY;
+					_el.fireEvent('on' + event, evt);
+				}
+			});
 			return this;
 		}
 	};
