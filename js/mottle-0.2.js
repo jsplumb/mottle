@@ -204,11 +204,11 @@
 					_bind(obj, "mouseover", _curryChildFilter(children, obj, over, "mouseover"), over);
 					_bind(obj, "mouseout", _curryChildFilter(children, obj, out, "mouseout"), out);
 				}
-				
+
 				fn.__taUnstore = function() {
 					delete obj.__tamee[evt][fn.__tauid];
 				};
-				
+
 				_store(obj, evt, fn);
 				obj.__tamee[evt][fn.__tauid] = fn;
 			};
@@ -241,7 +241,6 @@
 			}
 		},
 		_getTouch = function(touches, idx) { return touches.item ? touches.item(idx) : touches[idx]; },
-		_OLDtouches = function(e) { return e.touches || [ e ]; },
 		_touches = function(e) {
 			return e.touches && e.touches.length > 0 ? e.touches : 
 				   e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches :
@@ -265,23 +264,24 @@
 		},
 		_unbind = function( obj, type, fn) {
 			_each(obj, function() {
-				_unstore(this, type, fn);
+				var _el = _gel(this);
+				_unstore(_el, type, fn);
 				// it has been bound if there is a tauid. otherwise it was not bound and we can ignore it.
 				if (fn.__tauid != null) {
-					if (this.removeEventListener)
-						this.removeEventListener( type, fn, false );
+					if (_el.removeEventListener)
+						_el.removeEventListener( type, fn, false );
 					else if (this.detachEvent) {
 						var key = type + fn.__tauid;
-						this[key] && this.detachEvent( "on"+type, this[key] );
-						this[key] = null;
-						this["e"+key] = null;
+						_el[key] && _el.detachEvent( "on"+type, _el[key] );
+						_el[key] = null;
+						_el["e"+key] = null;
 					}
 				}
 			});
 		},
 		_devNull = function() {},
 		_each = function(obj, fn) {
-			obj = obj.tagName == null && obj.length != null ? obj : [ obj ];
+			obj = (typeof obj !== "string") && (obj.tagName == null && obj.length != null) ? obj : [ obj ];
 			for (var i = 0; i < obj.length; i++)
 				fn.apply(obj[i]);
 		};
@@ -296,15 +296,16 @@
 			_smartClicks = params.smartClicks,
 			_doBind = function(obj, evt, fn, children) {
 				_each(obj, function() {
+					var _el = _gel(this);
 					if (_smartClicks && evt === "click")
-						SmartClickHandler(this, evt, fn, children);
+						SmartClickHandler(_el, evt, fn, children);
 					else if (evt === "tap" || evt === "dbltap" || evt === "contextmenu") {
-						tapHandler(this, evt, fn, children);
+						tapHandler(_el, evt, fn, children);
 					}
 					else if (evt === "mouseenter" || evt == "mouseexit")
-						mouseEnterExitHandler(this, evt, fn, children);
+						mouseEnterExitHandler(_el, evt, fn, children);
 					else 
-						DefaultHandler(this, evt, fn, children);
+						DefaultHandler(_el, evt, fn, children);
 				});
 			};
 
@@ -328,7 +329,6 @@
 				}
 				_el.parentNode && _el.parentNode.removeChild(_el);
 			});
-			
 			return this;
 		};
 
@@ -350,7 +350,7 @@
 				_e = arguments[arguments.length - 2],
 				_f = arguments[arguments.length - 1];
 
-			_doBind(_gel(_el), _e, _f, _c);
+			_doBind(_el, _e, _f, _c);
 			return this;
 		};	
 
@@ -386,9 +386,9 @@
 				if (document.createEvent) {
 					evt = document.createEvent("MouseEvents");
 					evt.initMouseEvent(event, true, true, window, 0,
-									   originalEvent.screenX, originalEvent.screenY,
-									   originalEvent.clientX, originalEvent.clientY,
-									   false, false, false, false, 1, null);
+						originalEvent.screenX, originalEvent.screenY,
+						originalEvent.clientX, originalEvent.clientY,
+						false, false, false, false, 1, null);
 					_el.dispatchEvent(evt);
 				}
 				else if (document.createEventObject) {
@@ -404,7 +404,7 @@
 			return this;
 		}
 	};
-	
+
 	/**
 	* @name Mottle#consume
 	* @desc Static method to assist in 'consuming' an element.
@@ -417,4 +417,5 @@
 		if (!doNotPreventDefault && e.preventDefault)
 			 e.preventDefault();
 	};
+
 }).call(this);
