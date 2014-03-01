@@ -98,11 +98,11 @@ The three basic touch events are mapped in this way:
 
 ##Usage
 
-### 0.2
-
 #### Constructor
 
-	var mottle = new Mottle( { OPTIONAL PARAMS } );
+```
+var mottle = new Mottle( { OPTIONAL PARAMS } );
+```
 
 Allowed constructor parameters are:
 
@@ -112,30 +112,49 @@ Allowed constructor parameters are:
 
 #### Event Binding
 
-To directly bind an event handler on some element, use `bind`:
+To directly bind an event handler on some element, use `on`:
 
-	mottle.on(someElementOrId, "click", aFunction);
-	mottle.on(someElementOrId, "dblclick", anotherFunction);	
+	mottle.on(someElementOrSelector, "click", aFunction);
+	mottle.on(someElementOrSelector, "dblclick", anotherFunction);	
 
 To subsequently unbind, use `off`. Note you have to supply the original function:
 
-	mottle.off(someOtherElementOrId, "dblclick", anotherFunction);
+	mottle.off(someOtherElementOrSelector, "dblclick", anotherFunction);
 
 #### Event Delegation
 
 To have some element act as an event handling delegate for some set of its child elements, provide a child selector as the second argument to `on`:
 
-	mottle.on(someElementOrId, "div.foo, div.bar", "click", aFunction);
+```
+mottle.on(someElementOrSelector, "div.foo, div.bar", "click", aFunction);
+```
 
 To remove the event delegation, again use `off`:
 
-	mottle.off(someElementOrId, "click", aFunction);
+```
+mottle.off(someElementOrSelector, "click", aFunction);
+```
 
 Note that the `off` function does not take a list of selectors as argument. It removes all event delegation for the set of child selectors with which the given function was registered.
 
 ---
 
+#### Removing Elements
+If you need to remove an element from the DOM and you've used an instance of Mottle to bind event handlers to that element,
+you should use Mottle's `remove` method to take care of the element's removal: it not only removes the element, but it first
+unbinds any event listeners, to avoid memory leaks.
 
+To remove the div with ID 'main', for instance:
+
+```
+mottle.remove("#main");
+```
+
+To remove all divs with class "foo":
+
+```
+mottle.remove(".foo");
+```
 
 
 
