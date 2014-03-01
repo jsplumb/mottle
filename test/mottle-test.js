@@ -131,13 +131,29 @@ var testSuite = function() {
 	});
 	
 	test("bind and remove using Mottle, element as arg", function() {
-        var d = _add("d1")
+        var d = _add("d1");
 		var a = 0;
 		m.on(d, "click", function() { a++; });
 		m.remove(d);
 		ok(d.parentNode == null, "div was removed from the dom");
 		m.trigger(d, "click");
 		ok(a == 0, "event was not fired");
+    });
+	
+	test("bind and remove using Mottle, selector  arg", function() {
+        var d = _add("d1"), d2 = _add("d2");
+		var a = 0;
+		d.className = "foo";
+		d2.className = "foo";
+		var divs = document.querySelectorAll(".foo");
+		m.on(divs, "click", function() { a++; });
+		m.trigger(divs, "click");
+		ok(a == 2, "event was not fired");
+		m.remove(divs);
+		ok(d.parentNode == null, "div was removed from the dom");
+		ok(d2.parentNode == null, "div was removed from the dom");
+		m.trigger(divs, "click");
+		ok(a == 2, "event was not fired");
     });
 	
 	
