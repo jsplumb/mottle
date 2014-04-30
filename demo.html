@@ -133,14 +133,14 @@ pre {
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("basicEvents", "mousedown", function() { ... });
-m.on("basicEvents", "mouseup", function() { ... });
-m.on("basicEvents", "click", function() { ... });
-m.on("basicEvents", "dblclick", function() { ... });
-m.on("basicEvents", "mousemove", function() { ... });
-m.on("basicEvents", "mouseover", function() { ... });
-m.on("basicEvents", "mouseout", function() { ... });
-m.on("basicEvents", "contextmenu", function() { ... });
+m.on("#basicEvents", "mousedown", function() { ... });
+m.on("#basicEvents", "mouseup", function() { ... });
+m.on("#basicEvents", "click", function() { ... });
+m.on("#basicEvents", "dblclick", function() { ... });
+m.on("#basicEvents", "mousemove", function() { ... });
+m.on("#basicEvents", "mouseover", function() { ... });
+m.on("#basicEvents", "mouseout", function() { ... });
+m.on("#basicEvents", "contextmenu", function() { ... });
 </pre>
 			</div>
 
@@ -158,9 +158,9 @@ m.on("basicEvents", "contextmenu", function() { ... });
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("tapEvents", "tap", function() { ... });
-m.on("tapEvents", "dbltap", function() { ... });
-m.on("tapEvents", "contextmenu", function() { ... });
+m.on("#tapEvents", "tap", function() { ... });
+m.on("#tapEvents", "dbltap", function() { ... });
+m.on("#tapEvents", "contextmenu", function() { ... });
 </pre>
 			</div>
 
@@ -174,7 +174,7 @@ m.on("tapEvents", "contextmenu", function() { ... });
 			<div class="code">
 <pre>
 var m = new Mottle({ smartClicks:true });
-m.on("smartClick", "click", function() { ... });
+m.on("#smartClick", "click", function() { ... });
 </pre>
 			</div>
 			
@@ -198,8 +198,8 @@ m.on("smartClick", "click", function() { ... });
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("eventDelegation", ".foo,.baz,.bar", "click", function() { ... });
-m.on("eventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
+m.on("#eventDelegation", ".foo,.baz,.bar", "click", function() { ... });
+m.on("#eventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
 </pre>
 			</div>
 			
@@ -221,9 +221,9 @@ m.on("eventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("tapEventDelegation", ".foo,.baz,.bar", "tap", function() { ... });
-m.on("tapEventDelegation", ".foo,.baz,.bar", "dbltap", function() { ... });
-m.on("tapEventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
+m.on("#tapEventDelegation", ".foo,.baz,.bar", "tap", function() { ... });
+m.on("#tapEventDelegation", ".foo,.baz,.bar", "dbltap", function() { ... });
+m.on("#tapEventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
 </pre>
 			</div>
 			
@@ -243,8 +243,8 @@ m.on("tapEventDelegation", ".foo,.baz,.bar", "contextmenu", function() { ... });
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("mouseEnterExit", "mouseenter", function() { ... });
-m.on("mouseEnterExit", "mouseexit", function() { ... });
+m.on("#mouseEnterExit", "mouseenter", function() { ... });
+m.on("#mouseEnterExit", "mouseexit", function() { ... });
 </pre>
 			</div>
 			
@@ -264,8 +264,8 @@ m.on("mouseEnterExit", "mouseexit", function() { ... });
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("mouseEnterExitDelegation", ".foo,.bar,.baz", "mouseenter", function() { ... });
-m.on("mouseEnterExitDelegation", ".foo,.bar,.baz", "mouseexit", function() { ... });
+m.on("#mouseEnterExitDelegation", ".foo,.bar,.baz", "mouseenter", function() { ... });
+m.on("#mouseEnterExitDelegation", ".foo,.bar,.baz", "mouseexit", function() { ... });
 </pre>
 			</div>
 			
@@ -285,14 +285,14 @@ m.on("mouseEnterExitDelegation", ".foo,.bar,.baz", "mouseexit", function() { ...
 			<div class="code">
 <pre>
 var m = new Mottle({smartClicks:true});
-m.on("smartClickDelegation", ".foo,.bar,.baz", "click", function() { ... });
-m.on("smartClickDelegation", ".foo,.bar,.baz", "contextmenu", function() { ... });
+m.on("#smartClickDelegation", ".foo,.bar,.baz", "click", function() { ... });
+m.on("#smartClickDelegation", ".foo,.bar,.baz", "contextmenu", function() { ... });
 </pre>
 			</div>
 			
 			<h3>Event Triggering</h3>
-			We register a `dblclick` listener on the main element. When you press the Trigger button, a `dblclick` event is triggered. Click
-			on the element itself to clear the message.
+			We register a `mousedown` listener on the main element, the listener for which ordinarily does nothing.  When you press the Trigger button, a `mousedown` event is triggered, and a payload is set on the event. The `mousedown` listener recognizes this payload and
+			in this case writes a message.
 			<div id="triggering" class="demo">				
 				<div class="debug"></div>
 				<button class="trigger">Trigger</button>
@@ -301,10 +301,14 @@ m.on("smartClickDelegation", ".foo,.bar,.baz", "contextmenu", function() { ... }
 			<div class="code">
 <pre>
 var m = new Mottle();
-m.on("triggering", "dblclick", function() { ...write the message... });
-m.on("triggering", "click", function() { ...clear the message... });
-m.on("triggering", "button.trigger", "click", function(e) {
-	m.trigger("triggering", "dblclick", e);
+m.on("#triggering", "mousedown", function(e) { 
+	if (e.payload == "triggered") {
+		var pageLoc = Mottle.pageLocation(e); // get the page location for the given event.
+		...write the message... 
+	}
+});
+m.on("#triggering", "button.trigger", "click", function(e) {
+	m.trigger("triggering", "mousedown", e, "triggered");
 });
 </pre>
 			</div>
@@ -402,12 +406,15 @@ m.on("triggering", "button.trigger", "click", function(e) {
 						div.innerHTML = msg + " [source:" + e.srcElement.innerHTML + "]";
 				}, ".foo,.bar,.baz", true);
 				
-				var mottle = demo("triggering", ["dblclick", "click"], function(e, msg, div) {
-					if (msg == "dblclick")
-						div.innerHTML = "Double Click!";
+				var mottle = demo("triggering", ["mousedown"], function(e, msg, div) {
+					if (e.payload == "triggered") {
+						var pageLoc = Mottle.pageLocation(e);
+						div.innerHTML = "Mousedown at " + pageLoc[0] + "," + pageLoc[1];
+					}
 				});
-				mottle.on("triggering", "button.trigger", "click", function(e) {
-					mottle.trigger("triggering", "dblclick", e);
+				mottle.on("#triggering", "button.trigger", "click", function(e) {
+					//mottle.trigger("#triggering", "dblclick", e);
+					mottle.trigger("#triggering", "mousedown", e, "triggered");
 				});
 				
 				//*/
