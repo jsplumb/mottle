@@ -2,6 +2,10 @@
 
 	"use strict";
 
+	var Sniff = {
+		android:navigator.userAgent.toLowerCase().indexOf("android") > -1
+	};
+
 	var matchesSelector = function(el, selector, ctx) {
 			ctx = ctx || el.parentNode;
 			var possibles = ctx.querySelectorAll(selector);
@@ -230,15 +234,25 @@
 			return rv;
 		})(),
 		isIELT9 = iev > -1 && iev < 9, 
+		_genLoc = function(e, prefix) {
+			if (e == null) return [ 0, 0 ];
+			var ts = _touches(e), t = _getTouch(ts, 0);
+			return [t[prefix + "X"], t[prefix + "Y"]];
+		},
 		_pageLocation = function(e) {
+			if (e == null) return [ 0, 0 ];
 			if (isIELT9) {
 				return [ e.clientX + document.documentElement.scrollLeft, e.clientY + document.documentElement.scrollTop ];
 			}
 			else {
-				var ts = _touches(e), t = _getTouch(ts, 0);
-				// this is for iPad. may not fly for Android.
-				return [t.pageX, t.pageY];
+				return _genLoc(e, "page");
 			}
+		},
+		_screenLocation = function(e) {
+			return _genLoc(e, "screen");
+		},
+		_clientLocation = function(e) {
+			return _genLoc(e, "client");
 		},
 		_getTouch = function(touches, idx) { return touches.item ? touches.item(idx) : touches[idx]; },
 		_touches = function(e) {
@@ -400,31 +414,65 @@
 		*/
 		this.trigger = function(el, event, originalEvent, payload) {
 			var eventToBind = (isTouchDevice && touchMap[event]) ? touchMap[event] : event;
+			var pl = _pageLocation(originalEvent), sl = _screenLocation(originalEvent), cl = _clientLocation(originalEvent);
 			_each(el, function() {
 				var _el = _gel(this), evt;
 				originalEvent = originalEvent || {
-					screenX:0,
-					screenY:0,
-					clientX:0,
-					clientY:0
+					screenX:sl[0],
+					screenY:sl[1],
+					clientX:cl[0],
+					clientY:cl[1]
 				};
+
+				var _decorate = function(_evt) {
+					if (payload) _evt.payload = payload;
+				};
+
+				var eventGenerators = {
+					"TouchEvent":function(evt) {
+						var t = document.createTouch(window, _el, 0, pl[0], pl[1], 
+									sl[0], sl[1],
+									cl[0], cl[1],
+									0,0,0,0);
+
+						evt.initTouchEvent(eventToBind, true, true, window, 0, 
+							sl[0], sl[1],
+							cl[0], cl[1],
+							false, false, false, false, document.createTouchList(t));
+					},
+					"MouseEvents":function(evt) {
+						evt.initMouseEvent(eventToBind, true, true, window, 0,
+							sl[0], sl[1],
+							cl[0], cl[1],
+							false, false, false, false, 1, _el);
+						
+						if (Sniff.android) {
+							// Android's touch events are not standard.
+							var t = document.createTouch(window, _el, 0, pl[0], pl[1], 
+										sl[0], sl[1],
+										cl[0], cl[1],
+										0,0,0,0);
+
+							evt.touches = evt.targetTouches = evt.changedTouches = document.createTouchList(t);
+						}
+					}
+				};
+
 				if (document.createEvent) {
-					evt = document.createEvent("MouseEvents");
-					evt.initMouseEvent(eventToBind, true, true, window, 0,
-						originalEvent.screenX, originalEvent.screenY,
-						originalEvent.clientX, originalEvent.clientY,
-						false, false, false, false, 1, null);
-					if (payload) evt.payload = payload;
+					var ite = (isTouchDevice && touchMap[event] && !Sniff.android), evtName = ite ? "TouchEvent" : "MouseEvents";
+					evt = document.createEvent(evtName);
+					eventGenerators[evtName](evt);
+					_decorate(evt);
 					_el.dispatchEvent(evt);
 				}
 				else if (document.createEventObject) {
 					evt = document.createEventObject();
 					evt.eventType = evt.eventName = eventToBind;
-					evt.screenX = originalEvent.screenX;
-					evt.screenY = originalEvent.screenY;
-					evt.clientX = originalEvent.clientX;
-					evt.clientY = originalEvent.clientY;
-					if (payload) evt.payload = payload;
+					evt.screenX = sl[0];
+					evt.screenY = sl[1];
+					evt.clientX = cl[0];
+					evt.clientY = cl[1];
+					_decorate(evt);
 					_el.fireEvent('on' + eventToBind, evt);
 				}
 			});
