@@ -291,8 +291,7 @@ m.on("#smartClickDelegation", ".foo,.bar,.baz", "contextmenu", function() { ... 
 			</div>
 			
 			<h3>Event Triggering</h3>
-			We register a `mousedown` listener on the main element, the listener for which ordinarily does nothing.  When you press the Trigger button, a `mousedown` event is triggered, and a payload is set on the event. The `mousedown` listener recognizes this payload and
-			in this case writes a message.
+			We register a `mousedown` listener on the main element, the listener for which ordinarily does nothing.  When you click on the "Trigger" button, a `mousedown` event is triggered, and a payload is set on the event. The `mousedown` listener recognizes this payload and in this case writes a message.
 			<div id="triggering" class="demo">				
 				<div class="debug"></div>
 				<button class="trigger">Trigger</button>
@@ -380,7 +379,7 @@ m.on("#triggering", "button.trigger", "click", function(e) {
 				demo("tapEvents", [ ["contextmenu",true], "tap", "dbltap", "mousemove" ], function(e, msg, div) {
 					div.innerHTML = (msg == "mousemove")  ? "" : msg;
 				});
-				//*/
+				
 				demo("smartClick", [ "click", "mousemove", "dblclick" ], function(e, msg, div) {
 					div.innerHTML = (msg == "mousemove")  ? "" : msg;
 				}, null, true);
@@ -413,12 +412,9 @@ m.on("#triggering", "button.trigger", "click", function(e) {
 					}
 				});
 				mottle.on("#triggering", "button.trigger", "click", function(e) {
-					//mottle.trigger("#triggering", "dblclick", e);
 					mottle.trigger("#triggering", "mousedown", e, "triggered");
 				});
 				
-				//*/
-
 			};
 		</script>
 
