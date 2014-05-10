@@ -1,7 +1,8 @@
 var divs  =[],
-	_add = function(id) {
+	_add = function(id, className) {
 		var d = document.createElement("div");
 		d.setAttribute("id", id);
+		if (className) d.className = className;
 		divs.push(d);
 		document.body.appendChild(d);
 		return d;
@@ -26,6 +27,26 @@ var testSuite = function() {
             m = new Mottle();
 		}
 	});
+
+    test("bind a click on document and trigger one, no original event", function() {
+        var a = null;
+		m.on(document, "click", function() { a = "done"; });
+		m.trigger(document, "click");
+		equal(a, "done", "click event was registered and triggered");
+    });
+
+    test("event delegation: bind a click on document with div filters and trigger one, no original event", function() {
+    	var d1 = _add("d1", "foo");
+    	var d2 = _add("d2", "foo");
+    	var d3 = _add("d3", "bar");
+        var a = null;
+		m.on(document, "click", ".foo", function() { a = "done"; });
+		m.trigger(d2, "click");
+		equal(a, "done", "click event was registered and triggered");
+		a = null;
+		m.trigger(d3, "click");
+		equal(a, null, "click event did not fire for unregistered selector");
+    });
     
     test("bind a click and trigger one, no original event", function() {
         var d = _add("d1");
