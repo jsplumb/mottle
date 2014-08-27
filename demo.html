@@ -315,7 +315,7 @@ m.on("#triggering", "button.trigger", "click", function(e) {
 			
 		</div>
 		
-		<script src="js/mottle-0.2.js"></script>
+		<script src="js/mottle-0.4.js"></script>
 
 		<script>
 			document.body.onload = function() {
@@ -357,7 +357,7 @@ m.on("#triggering", "button.trigger", "click", function(e) {
 							
 						var l = d(e, dbug, fn, c);
 						listeners.push([e, l]);
-						var args = [ el, spec, e, l ];
+						var args = [ el, e, spec, l ];
 						m.on.apply(m, args);
 					}
 					
