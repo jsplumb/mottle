@@ -78,17 +78,23 @@
 			fn.__taExtra.push([evt, newFn]);
 		},
 		DefaultHandler = function(obj, evt, fn, children) {
-			// TODO: this was here originally because i wanted to handle devices that are both touch AND mouse. however this can cause certain of the helper
-			// functions to be bound twice, as - for example - on a nexus 4, both a mouse event and a touch event are fired.  the use case i had in mind
-			// was a device such as an Asus touch pad thing, which has a touch pad but can also be controlled with a mouse.
-			//if (isMouseDevice)
-			//	_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
-			
 			if (isTouchDevice && touchMap[evt]) {
 				_bind(obj, touchMap[evt], _curryChildFilter(children, obj, fn, touchMap[evt]), fn);
 			}
-			else
-				_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
+
+            // TODO SP: a temporary change: bind mouse AND touch listeners if the device says it has both, rather than
+            // binding one or the other.
+            //
+            // this will break devices such as the nexus phones/tablets, since they post both events. but it will
+            // mean that window touch devices (chrome) will work. so the long term fix is to put in some handler
+            // that can filter extra mouse events on devices such as the nexus.
+            //
+			//else
+			//	_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
+            //if (isMouseDevice && mouseevents.indexOf(evt) != -1)
+            // this will bind all mouse events and other stuff like keyboard events, resize, etc.
+            if (touchevents.indexOf(evt) == -1)
+                _bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
 		},
 		SmartClickHandler = function(obj, evt, fn, children) {
 			if (obj.__taSmartClicks == null) {
@@ -237,6 +243,8 @@
 		isTouchDevice = "ontouchstart" in document.documentElement,
 		isMouseDevice = "onmousedown" in document.documentElement,
 		touchMap = { "mousedown":"touchstart", "mouseup":"touchend", "mousemove":"touchmove" },
+        mouseevents = "mouseover mouseout mouseenter mouseexit mousedown mousemove mouseup click dblclick contextmenu tap dbltap",
+        touchevents = [ "touchstart", "touchend", "touchmove" ],
 		touchstart="touchstart",touchend="touchend",touchmove="touchmove",
 		ta_down = "__MottleDown", ta_up = "__MottleUp", 
 		ta_context_down = "__MottleContextDown", ta_context_up = "__MottleContextUp",
@@ -319,15 +327,19 @@
 			// if a list (or list-like), use it. if a string, get a list 
 			// by running the string through querySelectorAll. else, assume 
 			// it's an Element.
-			obj = (typeof obj !== "string") && (obj.tagName == null && obj.length != null) ? obj : typeof obj === "string" ? document.querySelectorAll(obj) : [ obj ];
+            obj = (typeof Window !== "undefined" && obj == obj.top) ? [ obj ] :
+                    (typeof obj !== "string") && (obj.tagName == null && obj.length != null) ? obj :
+                    typeof obj === "string" ? document.querySelectorAll(obj)
+                : [ obj ];
+
 			for (var i = 0; i < obj.length; i++)
 				fn.apply(obj[i]);
 		};
 
 	/**
-	* Event handler.  Offers support for abstracting out the differences
+	* Mottle offers support for abstracting out the differences
 	* between touch and mouse devices, plus "smart click" functionality
-	* (don't fire click if the mouse has moved betweeb mousedown and mouseup),
+	* (don't fire click if the mouse has moved between mousedown and mouseup),
 	* and synthesized click/tap events.
 	* @class Mottle
 	* @constructor
@@ -520,5 +532,25 @@
 	* @return {Integer[]} [left, top] for the given event.
 	*/
 	Mottle.pageLocation = _pageLocation;
+
+    /**
+     * Forces touch events to be turned "on". Useful for testing: even if you don't have a touch device, you can still
+     * trigger a touch event when this is switched on and it will be captured and acted on.
+     * @method setForceTouchEvents
+     * @param {Boolean} value If true, force touch events to be on.
+     */
+    Mottle.setForceTouchEvents = function(value) {
+        isTouchDevice = value;
+    };
+
+    /**
+     * Forces mouse events to be turned "on". Useful for testing: even if you don't have a mouse, you can still
+     * trigger a mouse event when this is switched on and it will be captured and acted on.
+     * @method setForceMouseEvents
+     * @param {Boolean} value If true, force mouse events to be on.
+     */
+    Mottle.setForceMouseEvents = function(value) {
+        isMouseDevice = value;
+    };
 
 }).call(this);
