@@ -109,7 +109,11 @@ var testSuite = function() {
 		equal(a, 2, "event was not fired again after unbind");
 		
     });
-	
+
+    /**
+     * Tests that unbinding from a deleted element does not fail.
+     * @method Mottle.Test.UnbindFromDeletedElement
+     */
 	test("bind a click and delete the element, then unbind", function() {
         var d = _add("d1");
 		var a = null;
@@ -127,7 +131,11 @@ var testSuite = function() {
 			ok(false, "unbind should not throw an error");
 		}
     });
-	
+
+    /**
+     * Tests that binding to a null element does not fail.
+     * @method Mottle.Test.BindNullElement
+     */
 	test("bind to a null element", function() {
 		expect(1);
 		m.on(null, "dblclick", function() {
@@ -135,14 +143,22 @@ var testSuite = function() {
 		});
 		ok(true, "bind to null did not fail");
 	});
-	
+
+    /**
+     * Tests that binding a null function does not fail.
+     * @method Mottle.Test.BindNull
+     */
 	test("bind a null function", function() {
 		expect(1);
 		var d = _add("d1");
 		m.on(d, "click", null);
 		ok(true, "bind with null function did not fail");
 	});
-	
+
+    /**
+     * Tests that unbinding a null function does not fail.
+     * @method Mottle.Test.UnbindNull
+     */
 	test("unbind a null function", function() {
 		expect(1);
 		var d = _add("d1");
@@ -150,7 +166,11 @@ var testSuite = function() {
 		m.off(d, "click", null);
 		ok(true, "unbind with null function did not fail");
 	});
-	
+
+    /**
+     * Tests bind and remove functionality when using a dom element as argument.
+     * @method Mottle.Test.BindRemoveWithElement
+     */
 	test("bind and remove using Mottle, element as arg", function() {
         var d = _add("d1");
 		var a = 0;
@@ -160,8 +180,12 @@ var testSuite = function() {
 		m.trigger(d, "click");
 		ok(a == 0, "event was not fired");
     });
-	
-	test("bind and remove using Mottle, selector  arg", function() {
+
+    /**
+    * Tests bind and remove functionality when using a document query selector as argument.
+    * @method Mottle.Test.BindRemoveWithQuerySelector
+    */
+	test("bind and remove using Mottle, selector arg", function() {
         var d = _add("d1"), d2 = _add("d2");
 		var a = 0;
 		d.className = "foo";
@@ -176,6 +200,60 @@ var testSuite = function() {
 		m.trigger(divs, "click");
 		ok(a == 2, "event was not fired");
     });
+
+    /**
+     * Tests the `forceTouchEvents` method, by setting the flag to true and then binding a listener
+     * to the `mousedown` event. Then, a `touchstart` event is triggered. This should be mapped back to
+     * its mouse equivalent - `mousedown`.
+     * @method Mottle.Test.ForceTouchEvents
+     */
+    test("force touch events, bind to mousedown, and trigger a touchstart.", function() {
+        Mottle.setForceTouchEvents(true);
+        var d = _add("d1"), t = 0;
+        m.on(d, "mousedown", function() {
+            t += 1;
+        });
+
+        m.trigger(d, "touchstart");
+        equal(t, 1, "event was fired and captured");
+    });
+
+    /**
+     * Tests the functionality that filters out mouse events for which a touch event has recently been fired.
+     * This occurs on devices that have a touch screen and a mouse, which is not uncommon for windows computers
+     * these days.  The algorithm employed to do this filtering is not exactly rocket science, because it can't be;
+     * there is no information linking the touch event and its corresponding mouse event. Mottle uses three pieces
+     * of information to determine whether or not a mouse event should be filtered: first, whether the device
+     * reports that it supports both touch and mouse events. Second, the event needs to have occurred "shortly" after
+     * a matching touch event (eg a mousedown a few ms after a touchstart). Third, the event's location must be
+     * within some proximity of the previous touch event.
+     * @method Mottle.Test.TouchMouseDuplication
+     *
+    test("filter duplicate mouse events.", function() {
+        ok(true, "YOU MUST EITHER BE ON A TOUCH DEVICE OR EMULATE TOUCH EVENTS FOR THIS TEST TO WORK");
+        Mottle.setForceTouchEvents(true);
+        var d = _add("d1"), t = 0;
+        m.on(d, "mousedown", function() {
+            t += 1;
+        });
+
+        m.trigger(d, "touchstart");
+
+        if (typeof document.createTouch == "undefined")
+        {
+            document.createTouch = function () {
+                return {};
+            };
+
+            document.createTouchList = function (t) {
+                return [t];
+            };
+        }
+
+        m.trigger(d, "mousedown");
+
+        equal(t, 1, "event was fired and captured only once.");
+    });*/
 	
 	
 	
