@@ -76,7 +76,7 @@ the "related target" (the element to which the mouse has gone) is NOT a descenda
 
 On mobile devices it can take a while for a `click` event to fire, and there is no `contextmenu` event. Mottle provides a synthesized version of `click` - `tap`, which
 works by starting a timer on `touchstart` and then firing the `tap` event if `touchend` occurs before the timer stops. Support for `dbltap` is also included, as is
-support for a synthesized `contextmenu` event (for which Mottle looks for a touchstart+touchend combination using two fingers).
+support for a synthesized `contextmenu` event (for which Mottle looks for a `touchstart`+`touchend` combination using two fingers).
 
 Given that the `tap` and `dbltap` events fallback to standard clicks on a mouse controlled device, it makes sense to bind to `tap` where you may have 
 historically bound to `click`.
