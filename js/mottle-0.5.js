@@ -98,8 +98,8 @@
             //	_bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
             //if (isMouseDevice && mouseevents.indexOf(evt) != -1)
             // this will bind all mouse events and other stuff like keyboard events, resize, etc.
-            if (touchevents.indexOf(evt) == -1)
-                _bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
+            //if (touchevents.indexOf(evt) == -1)
+            _bind(obj, evt, _curryChildFilter(children, obj, fn, evt), fn);
         },
         SmartClickHandler = function (obj, evt, fn, children) {
             if (obj.__taSmartClicks == null) {
@@ -473,15 +473,17 @@
 
                 var eventGenerators = {
                     "TouchEvent": function (evt) {
-                        var t = document.createTouch(window, _el, 0, pl[0], pl[1],
+                        var touch = document.createTouch(window, _el, 0, pl[0], pl[1],
                             sl[0], sl[1],
                             cl[0], cl[1],
                             0, 0, 0, 0);
 
-                        evt.initTouchEvent(eventToBind, true, true, window, 0,
-                            sl[0], sl[1],
-                            cl[0], cl[1],
-                            false, false, false, false, document.createTouchList(t));
+                        var touches = document.createTouchList(touch);
+                        var targetTouches = document.createTouchList(touch);
+                        var changedTouches = document.createTouchList(touch);
+                        evt.initTouchEvent(eventToBind, true, true, window, null, sl[0], sl[1],
+                            cl[0], cl[1], false, false, false, false,
+                            touches, targetTouches, changedTouches, 1, 0);
                     },
                     "MouseEvents": function (evt) {
                         evt.initMouseEvent(eventToBind, true, true, window, 0,
