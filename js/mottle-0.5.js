@@ -84,7 +84,8 @@
         },
         DefaultHandler = function (obj, evt, fn, children) {
             if (isTouchDevice && touchMap[evt]) {
-                _bind(obj, touchMap[evt], _curryChildFilter(children, obj, fn, touchMap[evt]), fn);
+                var tfn = _curryChildFilter(children, obj, fn, touchMap[evt]);
+                _bind(obj, touchMap[evt], tfn , fn);
             }
 
             // TODO SP: a temporary change: bind mouse AND touch listeners if the device says it has both, rather than
@@ -323,14 +324,21 @@
                 _unstore(_el, type, fn);
                 // it has been bound if there is a tauid. otherwise it was not bound and we can ignore it.
                 if (fn.__tauid != null) {
-                    if (_el.removeEventListener)
+                    if (_el.removeEventListener) {
                         _el.removeEventListener(type, fn, false);
+                        if (isTouchDevice && touchMap[type]) _el.removeEventListener(touchMap[type], fn, false);
+                    }
                     else if (this.detachEvent) {
                         var key = type + fn.__tauid;
                         _el[key] && _el.detachEvent("on" + type, _el[key]);
                         _el[key] = null;
                         _el["e" + key] = null;
                     }
+                }
+
+                // if a touch event was also registered, deregister now.
+                if (fn.__taTouchProxy) {
+                    _unbind(obj, fn.__taTouchProxy[1], fn.__taTouchProxy[0]);
                 }
             });
         },
@@ -478,12 +486,19 @@
                             cl[0], cl[1],
                             0, 0, 0, 0);
 
+                        // https://gist.github.com/sstephenson/448808
                         var touches = document.createTouchList(touch);
                         var targetTouches = document.createTouchList(touch);
                         var changedTouches = document.createTouchList(touch);
                         evt.initTouchEvent(eventToBind, true, true, window, null, sl[0], sl[1],
                             cl[0], cl[1], false, false, false, false,
                             touches, targetTouches, changedTouches, 1, 0);
+                        /*
+
+                         evt.initTouchEvent(eventToBind, true, true, window, 0,
+                         sl[0], sl[1],
+                         cl[0], cl[1],
+                         false, false, false, false, document.createTouchList(t));*/
                     },
                     "MouseEvents": function (evt) {
                         evt.initMouseEvent(eventToBind, true, true, window, 0,
