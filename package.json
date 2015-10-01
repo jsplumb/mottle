@@ -1,8 +1,8 @@
 {
-    "name": "Mottle",
-    "version": "0.6.0",
+    "name": "mottle",
+    "version": "0.7.0",
     "description": "Unified touch/mouse event management",
-    "main": "js/mottle-0.6.js",
+    "main": "js/mottle-0.7.0.js",
     "repository": {
         "type": "git",
         "url": "git://github.com/jsplumb/mottle.git"

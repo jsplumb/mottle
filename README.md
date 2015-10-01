@@ -1,8 +1,8 @@
 # Mottle
 =============
 
-Mottle is a simple event manager that takes care of a few bits and pieces I would often run into during development jsPlumb and the jsPlumb Toolkit. Briefly, its features
-are:
+Mottle is a simple event manager that takes care of a few bits and pieces I would often run into during development 
+jsPlumb and the jsPlumb Toolkit. Briefly, its features are:
 
 - automatic mapping of mouse events to their touch equivalents on touch enabled devices
 - "smart" click handling: not posting a click event if the mouse has moved between mousedown and mouseup
@@ -14,7 +14,7 @@ are:
 
 ### Browser Support
 
-Currently, all desktop browsers and iOS devices are supported.  Support for Android will be coming shortly.
+Currently, all desktop browsers and iOS devices are supported, and most browsers for Android work.
 
 #### Basic Events
 
