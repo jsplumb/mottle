@@ -192,7 +192,7 @@
                             },
                             up = function (e) {
                                 if (tt.down) {
-                                    var target = _t(e), pathInfo = _pi(e, target, obj, children != null), finished = false;
+                                    var target = _t(e), pathInfo;
                                     tt.taps++;
                                     var tc = _touchCount(e);
                                     for (var eventId in _tapProfiles) {
@@ -200,14 +200,13 @@
                                             var p = _tapProfiles[eventId];
                                             if (p.touches === tc && (p.taps === 1 || p.taps === tt.taps)) {
                                                 for (var i = 0; i < tt[eventId].length; i++) {
-                                                    finished = false;
+                                                    pathInfo = _pi(e, target, obj, tt[eventId][i][1] != null);
                                                     for (var pLoop = 0; pLoop < pathInfo.end; pLoop++) {
-                                                        if (finished) continue;
                                                         target = pathInfo.path[pLoop];
                                                         // this is a single event registration handler.
                                                         if (tt[eventId][i][1] == null || matchesSelector(target, tt[eventId][i][1], obj)) {
-                                                            finished = true;
                                                             tt[eventId][i][0].apply(target, [ e ]);
+                                                            break;
                                                         }
                                                     }
                                                 }
@@ -397,15 +396,15 @@
      * @class Mottle
      * @constructor
      * @param {Object} params Constructor params
-     * @param {Number} [params.clickThreshold=150] Threshold, in milliseconds beyond which a touchstart followed by a touchend is not considered to be a click.
-     * @param {Number} [params.dblClickThreshold=350] Threshold, in milliseconds beyond which two successive tap events are not considered to be a click.
+     * @param {Number} [params.clickThreshold=250] Threshold, in milliseconds beyond which a touchstart followed by a touchend is not considered to be a click.
+     * @param {Number} [params.dblClickThreshold=450] Threshold, in milliseconds beyond which two successive tap events are not considered to be a click.
      * @param {Boolean} [params.smartClicks=false] If true, won't fire click events if the mouse has moved between mousedown and mouseup. Note that this functionality
      * requires that Mottle consume the mousedown event, and so may not be viable in all use cases.
      */
     root.Mottle = function (params) {
         params = params || {};
-        var clickThreshold = params.clickThreshold || 150,
-            dblClickThreshold = params.dblClickThreshold || 350,
+        var clickThreshold = params.clickThreshold || 250,
+            dblClickThreshold = params.dblClickThreshold || 450,
             mouseEnterExitHandler = new MouseEnterExitHandler(),
             tapHandler = new TapHandler(clickThreshold, dblClickThreshold),
             _smartClicks = params.smartClicks,
