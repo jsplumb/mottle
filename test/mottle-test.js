@@ -304,18 +304,22 @@ var testSuite = function () {
 
 // -------------------- blur/focus -------------------------------------------
 
-    test("blur/focus events", function() {
+    asyncTest("blur/focus events", function() {
         var d = _add("d1"), d2 = _add("d2");
         d2.setAttribute("tabindex", 1); //allow d2 to grab focus so that the blur gets fired.
         var a = 0, b = 0;
-        m.on(d, "focus", function () { a++; });
+        m.on(d, "focus", function () {
+            a = a + 1;
+            d2.focus();
+        });
         m.on(d, "blur", function () {
-            b++;
+            b = b+1;
+            QUnit.start();
+            equal(a, 1, "focus event captured");
+            equal(b, 1, "blur event captured");
         });
         d.focus();
-        equal(a, 1, "focus event captured");
-        d2.focus();
-        equal(b, 1, "blur event captured");
+
     });
 
     /**
