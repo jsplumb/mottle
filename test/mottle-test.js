@@ -1,10 +1,10 @@
 var divs = [],
-    _add = function (id, className) {
+    _add = function (id, className, parent) {
         var d = document.createElement("div");
         d.setAttribute("id", id);
         if (className) d.className = className;
         divs.push(d);
-        document.body.appendChild(d);
+        (parent || document.body).appendChild(d);
         return d;
     },
     _clear = function () {
@@ -240,8 +240,67 @@ var testSuite = function () {
 
         m.trigger(d, "touchstart");
         equal(t, 1, "event was fired and captured");
+
+        Mottle.setForceTouchEvents(false);
     });
 
+    test("basic click delegation", function() {
+        var d = _add("d1"), d2 = _add("d2", "aChild", d);
+
+        var child = false;
+
+        m.on(d, "click", ".aChild", function(e) {
+            child = true;
+            ok(this === d2, "correct element set as the source of the event");
+        });
+
+        m.trigger(d2, "click");
+        ok(child, "click event was delegated");
+    });
+
+    test("click delegation, click on child of event specified in delegate selector", function() {
+        var d = _add("d1"), d2 = _add("d2", "aChild", d), d3 = _add("d3", null, d2);
+
+        var child = false;
+
+        m.on(d, "click", ".aChild", function(e) {
+            child = true;
+            equal(this, d2, "correct element set as the source of the event");
+        });
+
+        m.trigger(d3, "click");
+        ok(child, "click event was delegated");
+    });
+
+    test("basic tap delegation", function() {
+        var d = _add("d1"), d2 = _add("d2", "aChild", d);
+
+        var child = false;
+
+        m.on(d, "tap", ".aChild", function(e) {
+            child = true;
+            ok(this === d2, "correct element set as the source of the event");
+        });
+
+        m.trigger(d2, "mousedown");
+        m.trigger(d2, "mouseup");
+        ok(child, "tap event was delegated");
+    });
+
+    test("tap delegation, click on child of event specified in delegate selector", function() {
+        var d = _add("d1"), d2 = _add("d2", "aChild", d), d3 = _add("d3", null, d2);
+
+        var child = false;
+
+        m.on(d, "tap", ".aChild", function(e) {
+            child = true;
+            ok(this === d2, "correct element set as the source of the event");
+        });
+
+        m.trigger(d3, "mousedown");
+        m.trigger(d3, "mouseup");
+        ok(child, "click event was delegated");
+    });
 
 // -------------------- blur/focus -------------------------------------------
 
