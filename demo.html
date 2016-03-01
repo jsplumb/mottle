@@ -166,6 +166,9 @@ m.on("#basicEvents", "contextmenu", function() { ... });
 
 <div id="tapEvents" class="demo">
     <div class="debug"></div>
+    <div style="position:absolute;top:50px;left:150px;background-color:cadetblue;padding:15px;" class="aChild">
+        <span style="display: inline-block;padding:25px;background-color:WhiteSmoke;">click here on the blue</span>
+    </div>
     <button class="unbind">Unbind Events</button>
 </div>
 <div class="code">
@@ -201,7 +204,7 @@ a selector that identifies appropriate descendants of the element to which to re
 </p>
 
 <div id="eventDelegation" class="demo">
-    <div class="foo">1</div>
+    <div class="foo">1 <span style="display: inline-block;padding:5px;background-color: red;">+</span></div>
     <div class="foo">2</div>
     <div class="baz">3</div>
     <div class="bar">4</div>
@@ -341,7 +344,7 @@ m.on("#triggering", "button.trigger", "click", function(e) {
 
 </div>
 
-<script src="js/mottle-0.7.1.js"></script>
+<script src="js/mottle-0.7.2.js"></script>
 
 <script>
     document.body.onload = function () {
