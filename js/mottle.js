@@ -619,4 +619,10 @@
         isMouseDevice = value;
     };
 
+    root.Mottle.version = "0.8.0";
+
+    if (typeof exports !== "undefined") {
+        exports.Mottle = root.Mottle;
+    }
+
 }).call(typeof window === "undefined" ? this : window);

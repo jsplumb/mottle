@@ -1,0 +1,9 @@
+0.8.0
+
+January 24, 2017
+
+- bump version to 0.8.0
+- remove version suffix from filename
+- publish to npm
+- export to CommonJS format
+- add version to Mottle static member

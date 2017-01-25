@@ -1,6 +1,6 @@
 {
     "name": "mottle",
-    "version": "0.7.4",
+    "version": "0.8.0",
     "ignore": [
         "html",
         "test",
@@ -9,7 +9,7 @@
         "*LICENSE.txt"
     ],
     "main": [
-        "js/mottle-0.7.4.js"
+        "js/mottle.js"
     ],
     "authors": [
         "jsPlumb <hello@jsplumbtoolkit.com>"
