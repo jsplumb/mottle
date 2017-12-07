@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "es2015",
+    "outDir": "_build",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "declaration":true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "lib": [ "es2015", "dom" ],
+    "noImplicitAny": true,
+    "suppressImplicitAnyIndexErrors": true
+
+  },
+  "files":[ "ts/**/*.ts" ]
+}

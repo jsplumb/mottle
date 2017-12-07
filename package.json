@@ -1,13 +1,19 @@
 {
-    "name": "mottle",
-    "version": "0.8.0",
-    "description": "Unified touch/mouse event management",
-    "main": "js/mottle.js",
-    "files":["js/mottle.js"],
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/jsplumb/mottle.git"
-    },
-    "author": "jsPlumb <hello@jsplumbtoolkit.com>",
-    "license": "MIT/GPL2"
+  "name": "mottle",
+  "version": "1.0.0",
+  "description": "Unified touch/mouse event management",
+  "main": "js/mottle.js",
+  "files": [
+    "js/mottle.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jsplumb/mottle.git"
+  },
+  "author": "jsPlumb <hello@jsplumbtoolkit.com>",
+  "license": "MIT/GPL2",
+  "devDependencies": {
+    "babel": "^6.23.0",
+    "typescript": "^2.6.2"
+  }
 }
