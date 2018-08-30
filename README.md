@@ -16,6 +16,23 @@ jsPlumb and the jsPlumb Toolkit. Briefly, its features are:
 
 Currently, all desktop browsers and iOS devices are supported, and most browsers for Android work.
 
+### Touch Event Shims
+
+As of M69, Chrome has stopped supporting `document.createTouch` and `document.createTouchList`, and other browser
+vendors will be doing this in their upcoming releases too.  All versions of Mottle prior to 1.0.0 relied on
+those methods for touch events; 1.0.0 does not.  
+
+Mottle was written primarily as the event manager for jsPlumb, so any version of jsPlumb (Toolkit or Community edition) 
+that has a pre-1.0.0 version of Mottle will run into problems with touch events at some stage. The minimum versions of
+ jsPlumb that contain Mottle 1.0.0 are:
+  
+- Toolkit : 1.9.0
+- Community: 2.8.0
+  
+but if you cannot upgrade to one of these versions, you can include the `touch-shim.js` file included in the root of 
+this project. It provides shims for the `document.createTouch` and `document.createTouchList` methods.
+ 
+
 #### Basic Events
 
 The following events can be bound, using the `on` function:
