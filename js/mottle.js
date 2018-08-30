@@ -3,6 +3,28 @@
 
     "use strict";
 
+    if(!document.createTouch) {
+        document.createTouch = function(view, target, pageX, pageY, screenX, screenY, clientX, clientY) {
+
+            // auto set
+            if(clientX == undefined || clientY == undefined) {
+                clientX = screenX;
+                clientY = screenY;
+            }
+
+            return new Touch({
+                target:target,
+                identifier:_uuid(),
+                pageX: pageX,
+                pageY: pageY,
+                screenX: screenX,
+                screenY: screenY,
+                clientX: clientX,
+                clientY: clientY
+            });
+        };
+    }
+
     var root = this,
         Sniff = {
             android: navigator.userAgent.toLowerCase().indexOf("android") > -1
@@ -386,6 +408,12 @@
 
             for (var i = 0; i < obj.length; i++)
                 fn.apply(obj[i]);
+        },
+        _uuid = function () {
+            return ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            }));
         };
 
     /**
@@ -524,10 +552,12 @@
                             0, 0, 0, 0);
 
                         // https://gist.github.com/sstephenson/448808
-                        var touches = document.createTouchList(touch);
-                        var targetTouches = document.createTouchList(touch);
-                        var changedTouches = document.createTouchList(touch);
-                        evt.initTouchEvent(eventToBind, true, true, window, null, sl[0], sl[1],
+                        var touches = [touch];
+                        var targetTouches = [touch];
+                        var changedTouches = [touch];
+
+                        var init = evt.initTouchEvent || evt.initEvent;
+                        init(eventToBind, true, true, window, null, sl[0], sl[1],
                             cl[0], cl[1], false, false, false, false,
                             touches, targetTouches, changedTouches, 1, 0);
                     },
@@ -544,7 +574,7 @@
                                 cl[0], cl[1],
                                 0, 0, 0, 0);
 
-                            evt.touches = evt.targetTouches = evt.changedTouches = document.createTouchList(t);
+                            evt.touches = evt.targetTouches = evt.changedTouches = [t];
                         }
                     }
                 };
