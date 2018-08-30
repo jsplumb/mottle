@@ -13,7 +13,6 @@
   "author": "jsPlumb <hello@jsplumbtoolkit.com>",
   "license": "MIT/GPL2",
   "devDependencies": {
-    "babel": "^6.23.0",
     "typescript": "^2.6.2"
   }
 }
