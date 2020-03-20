@@ -1,3 +1,9 @@
+1.0.1
+
+March 20th 2020
+
+- fix issue #8 - touch event on some windows devices when using chrome.
+
 0.8.0
 
 January 24, 2017
