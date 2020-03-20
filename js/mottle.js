@@ -338,7 +338,7 @@
                 obj.__tamee[evt][fn.__tauid] = fn;
             };
         },
-        isTouchDevice = "ontouchstart" in document.documentElement,
+        isTouchDevice = "ontouchstart" in document.documentElement || navigator.maxTouchPoints,
         isMouseDevice = "onmousedown" in document.documentElement,
         touchMap = { "mousedown": "touchstart", "mouseup": "touchend", "mousemove": "touchmove" },
         touchstart = "touchstart", touchend = "touchend", touchmove = "touchmove",
