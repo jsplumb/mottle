@@ -1,6 +1,6 @@
 {
-  "name": "mottle",
-  "version": "1.0.1",
+  "name": "@jsplumb/mottle",
+  "version": "1.5.0",
   "description": "Unified touch/mouse event management",
   "main": "js/mottle.js",
   "files": [
